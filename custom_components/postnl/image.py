@@ -180,8 +180,17 @@ class PostNLLetterImage(CoordinatorEntity[PostNLCoordinator], ImageEntity):
             return self._cached_bytes
 
         try:
+            # A client can request this photo at any point between polls, not
+            # just right after one — the bearer token baked into jouw_api can
+            # have expired since the last poll refreshed it (the default poll
+            # interval is 30 minutes; PostNL's own access tokens do not
+            # necessarily live that long). Ensure it is current before the
+            # fetch instead of trusting whatever the coordinator last cached,
+            # or this 401s. See CLAUDE.md — do not read
+            # ``self.coordinator.jouw_api`` directly here.
+            jouw_api = await self.coordinator.async_get_jouw_api()
             image_bytes, content_type = await self.hass.async_add_executor_job(
-                self.coordinator.jouw_api.image, url
+                jouw_api.image, url
             )
         except Exception as err:  # noqa: BLE001 - never let a bad image break the entity
             _LOGGER.warning(

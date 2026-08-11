@@ -1,6 +1,6 @@
 """Tests for the PostNL coordinator helpers and transform_shipment."""
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.postnl.const import (
     CAPABILITIES,
@@ -1510,6 +1510,62 @@ async def test_transform_shipment_falls_back_to_shipment_fields_on_tt_failure(ha
     assert parcel["barcode"] == "3SABC"
     assert parcel["planned_from"] == "2026-06-17T14:00:00Z"
     assert parcel["status"] == ParcelStatus.UNKNOWN
+
+
+# ---------------------------------------------------------------------------
+# async_get_jouw_api — token-refresh-before-use for the on-demand image path
+# ---------------------------------------------------------------------------
+
+
+def _make_auth_coordinator(hass, *, access_token: str = "tok1"):
+    entry = MagicMock()
+    entry.options = {}
+    auth = MagicMock()
+    auth.check_and_refresh_token = AsyncMock()
+    auth.access_token = access_token
+    entry.runtime_data.auth = auth
+    coordinator = PostNLCoordinator(hass, entry)
+    return coordinator, auth
+
+
+async def test_async_get_jouw_api_refreshes_token_before_returning(hass):
+    coordinator, auth = _make_auth_coordinator(hass)
+    await coordinator.async_get_jouw_api()
+    auth.check_and_refresh_token.assert_awaited_once()
+
+
+async def test_async_get_jouw_api_builds_client_on_first_call(hass):
+    coordinator, _ = _make_auth_coordinator(hass)
+    assert coordinator.jouw_api is None
+    result = await coordinator.async_get_jouw_api()
+    assert result is coordinator.jouw_api
+    assert coordinator.jouw_api is not None
+    assert coordinator.graphq_api is not None
+
+
+async def test_async_get_jouw_api_reuses_client_when_token_unchanged(hass):
+    # Regression guard for the "API clients are reused across polls" rule in
+    # CLAUDE.md — a client each carries its own requests.Session connection
+    # pool, so rebuilding on every on-demand image fetch would leak one per
+    # fetch instead of reusing the poll cycle's.
+    coordinator, _ = _make_auth_coordinator(hass)
+    first = await coordinator.async_get_jouw_api()
+    second = await coordinator.async_get_jouw_api()
+    assert first is second
+
+
+async def test_async_get_jouw_api_rebuilds_client_when_token_changed(hass):
+    # The actual bug this guards against: PostNLLetterImage.async_image() used
+    # to read coordinator.jouw_api directly, so a bearer token that expired
+    # between polls (the default poll interval is 30 minutes; PostNL's own
+    # access tokens are not guaranteed to live that long) produced a 401 on
+    # every image fetch until the next poll happened to refresh it.
+    coordinator, auth = _make_auth_coordinator(hass, access_token="tok1")
+    first = await coordinator.async_get_jouw_api()
+    auth.access_token = "tok2"
+    second = await coordinator.async_get_jouw_api()
+    assert first is not second
+    assert coordinator._api_token == "tok2"
 
 
 def test_capabilities_are_known_values():

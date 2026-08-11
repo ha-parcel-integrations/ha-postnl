@@ -25,6 +25,9 @@ def _coordinator(letters: list[dict] | None = None) -> MagicMock:
     coordinator.async_add_listener = MagicMock(return_value=lambda: None)
     coordinator.last_update_success = True
     coordinator.jouw_api = MagicMock()
+    # async_image() must go through this (token-refresh-before-use), never
+    # read coordinator.jouw_api directly — see test_async_image_refreshes_token_before_fetch.
+    coordinator.async_get_jouw_api = AsyncMock(return_value=coordinator.jouw_api)
     return coordinator
 
 
@@ -201,6 +204,25 @@ async def test_async_image_returns_none_when_executor_raises():
     assert await img.async_image() is None
     # Cache should still be unset so the next attempt will retry.
     assert img._cached_bytes is None
+
+
+@pytest.mark.asyncio
+async def test_async_image_refreshes_token_before_fetch():
+    # Regression test: async_image() used to read coordinator.jouw_api
+    # directly, so a bearer token that expired between polls (default poll
+    # interval 30 min; PostNL's own access tokens are not guaranteed to live
+    # that long) produced a 401 on every fetch until the next poll happened to
+    # refresh it — see CLAUDE.md and PostNLCoordinator.async_get_jouw_api.
+    coordinator = _coordinator([_letter("L1", image_url="https://example.com/img")])
+    img, hass = _make_image(coordinator, letter_id="L1")
+    hass.async_add_executor_job = AsyncMock(return_value=(b"fresh", "image/png"))
+
+    await img.async_image()
+
+    coordinator.async_get_jouw_api.assert_awaited_once()
+    hass.async_add_executor_job.assert_called_once_with(
+        coordinator.jouw_api.image, "https://example.com/img"
+    )
 
 
 # ---------------------------------------------------------------------------

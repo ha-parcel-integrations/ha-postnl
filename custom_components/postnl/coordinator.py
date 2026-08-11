@@ -123,17 +123,31 @@ class PostNLCoordinator(DataUpdateCoordinator):
             self._cached_device_id = device.id
         return self._cached_device_id
 
+    async def async_get_jouw_api(self) -> PostNLJouwAPI:
+        """Return ``jouw_api``, refreshing the bearer token first if it has expired.
+
+        Every poll goes through ``_async_update_data`` below, which always
+        refreshes before use — but ``PostNLLetterImage.async_image()`` calls this
+        on demand, whenever a client actually requests the photo, independently of
+        the poll cycle. ``jouw_api`` bakes its bearer token into the
+        ``requests.Session`` once at construction (see its docstring) and is only
+        rebuilt here when the token has actually changed, same as
+        ``_async_update_data`` — so a poll shortly after an on-demand image fetch
+        does not throw away a connection pool for nothing.
+        """
+        auth: AsyncConfigEntryAuth = self.config_entry.runtime_data.auth
+        await auth.check_and_refresh_token()
+        if self.jouw_api is None or auth.access_token != self._api_token:
+            self._api_token = auth.access_token
+            self.graphq_api = PostNLGraphql(self._api_token)
+            self.jouw_api = PostNLJouwAPI(self._api_token)
+        return self.jouw_api
+
     async def _async_update_data(self) -> dict[str, list[dict]]:
         _LOGGER.debug("Starting data update for PostNL.")
         try:
-            auth: AsyncConfigEntryAuth = self.config_entry.runtime_data.auth
             _LOGGER.debug("Authenticating with PostNL API.")
-            await auth.check_and_refresh_token()
-
-            if self.graphq_api is None or auth.access_token != self._api_token:
-                self._api_token = auth.access_token
-                self.graphq_api = PostNLGraphql(self._api_token)
-                self.jouw_api = PostNLJouwAPI(self._api_token)
+            await self.async_get_jouw_api()
 
             data: dict[str, list[dict]] = {
                 'receiver': [],
