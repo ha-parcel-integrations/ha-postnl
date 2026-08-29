@@ -103,6 +103,7 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     "I08": ParcelStatus.AT_PICKUP_POINT,  # zending beschikbaar op PostNL-punt
     "J02": ParcelStatus.AT_PICKUP_POINT,  # ligt klaar bij PostNL-punt
     "J12": ParcelStatus.AT_PICKUP_POINT,  # ligt klaar bij PostNL-punt
+    "J23": ParcelStatus.AT_PICKUP_POINT,  # kan worden afgehaald bij de pakketautomaat (locker variant of J02/J12)
     # --- Delivered / collected (terminal) ---
     "A80": ParcelStatus.DELIVERED,        # handtekening voor pakket ontvangen (proof of delivery)
     "I01": ParcelStatus.DELIVERED,        # pakket is bezorgd
@@ -123,12 +124,14 @@ _OBSERVATION_META_CODES: frozenset[str] = frozenset({
     "A04",  # PIOS melding (notification)
     "A18",  # ETA initieel bepaald
     "A19",  # ETA gewijzigd
+    "A24",  # herinnering 24 uur in pakketautomaat (locker variant of A25)
     "A25",  # reminderservice notificaties
     "A65",  # zending herpland (planning change)
     "A94",  # zelf bezorging gewijzigd
     "A95",  # bezorging wijzigen niet mogelijk
     "A96",  # bezorging wijzigen mogelijk
     "A98",  # voorgemelde zending verrijkt door PostNL regie (data enrichment)
+    "J09",  # bezorgmoment bijgewerkt, geen mislukte poging (locker parcel does not move)
     "K33",  # "leeg" placeholder
     "K50",  # RCS melding (notification)
 })

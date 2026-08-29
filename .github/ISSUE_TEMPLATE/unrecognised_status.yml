@@ -43,7 +43,9 @@ body:
         1. In Home Assistant, open **Settings → Devices & services**.
         2. Open this integration, then click the **⋮** (three dots) on its entry.
         3. Choose **Download diagnostics**.
-        4. Drag the downloaded file onto this issue to attach it.
-
-        Home Assistant redacts the file before download — names, addresses and
-        tracking numbers are removed, while the status codes we need are kept.
+        4. Open the file and check it before attaching. Home Assistant redacts
+           known personal fields, but that list is per-integration and can
+           miss something an API happens to return in an unlisted place (a
+           name, an address, a link containing a tracking number). Please
+           hand-redact anything that still looks personal.
+        5. Drag the file onto this issue to attach it.

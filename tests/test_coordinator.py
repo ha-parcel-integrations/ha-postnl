@@ -1206,9 +1206,18 @@ def test_map_observation_status_live_catalogue_2026_08_15():
         assert map_observation_status(code) == ParcelStatus.IN_TRANSIT, code
 
 
+def test_map_observation_status_live_catalogue_2026_08_29():
+    """Parcel-locker (pakketautomaat) codes reported by ymanq (issue #18)."""
+    # Ready for pickup at the locker — locker counterpart of J02/J12.
+    assert map_observation_status("J23") == ParcelStatus.AT_PICKUP_POINT
+
+
 def test_map_observation_status_meta_codes_are_silent_null(caplog):
     """Notification/admin codes are known → no movement status, no warning."""
-    for code in ("A04", "A18", "A19", "A25", "A65", "A94", "A95", "A96", "A98", "K33", "K50"):
+    for code in (
+        "A04", "A18", "A19", "A24", "A25", "A65", "A94", "A95", "A96", "A98",
+        "J09", "K33", "K50",
+    ):
         assert map_observation_status(code, "some text") is None, code
     assert "issues/new" not in caplog.text  # meta codes must not warn
 

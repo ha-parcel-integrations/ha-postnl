@@ -63,6 +63,8 @@ async def test_diagnostics_redacts_parcel_pii():
             "key": "3SABC-NL-1234AB",
             "source_display_name": "Brand",
             "receiver_title": "Peter",
+            "receiver": "Peter Nijssen",
+            "url": "https://jouw.postnl.nl/track-and-trace/3SABC-NL-1234AB",
             "status_message": "ON_THE_WAY",
         }],
     )
@@ -71,6 +73,9 @@ async def test_diagnostics_redacts_parcel_pii():
     assert parcel["barcode"] == REDACTED
     assert parcel["key"] == REDACTED
     assert parcel["receiver_title"] == REDACTED
+    # receiver's full name and the track-and-trace URL (barcode + postcode) are PII too (#18)
+    assert parcel["receiver"] == REDACTED
+    assert parcel["url"] == REDACTED
     # Sender brand name is not PII; status is not PII either
     assert parcel["status_message"] == "ON_THE_WAY"
 
