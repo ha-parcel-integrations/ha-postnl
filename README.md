@@ -42,7 +42,7 @@ Based upon the original work by [@arjenbos](https://github.com/arjenbos/ha-postn
 
 ## Requirements
 
-- Home Assistant 2024.7 or newer
+- Home Assistant 2024.12 or newer
 - A [PostNL](https://jouw.postnl.nl) account (the credentials you use on jouw.postnl.nl / the PostNL mobile app)
   - Both **Netherlands and Belgium** PostNL accounts are supported — they share the same backend, so your parcels come through either way. (MyMail letter scanning is a Netherlands-only feature and stays empty for Belgian mail.)
 
@@ -125,6 +125,13 @@ friendly-name pattern; their entity_ids carry the same account suffix:
 | `PostNL (account) Outgoing delivered parcels` | Recently delivered outgoing parcels (same configurable window) |
 | `PostNL (account) Letters` | Letters announced by PostNL's MyMail service over the last ~2 weeks; `unread` count and `letters` list on attributes |
 | `PostNL (account) Letter <title>` (image entity) | Scanned photo of a single announced letter, fetched with your token and served through Home Assistant. Attributes mirror the sensor's letter dict: `id`, `title`, `date`, `unread` |
+
+A **`PostNL (account) Deliveries`** calendar entity is also created, showing
+expected delivery dates for active incoming parcels — read-only, no extra
+API calls, letters are not included.
+
+A **`PostNL (account) Refresh`** button entity forces an immediate poll,
+without waiting for the next scheduled interval.
 
 Every parcel exposed on a sensor attribute uses a carrier-agnostic shape:
 
