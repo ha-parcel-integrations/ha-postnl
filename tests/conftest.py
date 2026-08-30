@@ -11,6 +11,22 @@ def auto_enable_custom_integrations(enable_custom_integrations):
     yield
 
 
+@pytest.fixture(autouse=True)
+def reset_one_shot_warnings():
+    """Clear the "already warned this session" flags between tests.
+
+    They are module-level by design -- a user must not be told about the
+    same unmapped status or unconfirmed field on every poll -- but that also
+    makes them leak across tests, so whether a warning fires would otherwise
+    depend on test order.
+    """
+    from custom_components.postnl import parcels
+
+    parcels._LOGGED_UNKNOWN_STATUSES.clear()
+    parcels._LOGGED_UNKNOWN_OBSERVATION_CODES.clear()
+    yield
+
+
 if sys.platform == "win32":
     # pytest-homeassistant-custom-component blocks socket *creation*
     # (``disable_socket(allow_unix_socket=True)``) in its per-test setup hook.
