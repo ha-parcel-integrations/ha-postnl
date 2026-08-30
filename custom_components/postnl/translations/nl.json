@@ -71,7 +71,7 @@
               "refresh_interval": "Ververs elke"
             },
             "data_description": {
-              "refresh_interval": "Hoe vaak de integratie PostNL controleert op pakketupdates. Een langzamer interval is vriendelijker voor PostNL; de standaard van 30 minuten is ruim voldoende voor de meeste pakketten."
+              "refresh_interval": "Hoe vaak de integratie PostNL controleert op pakket- en briefupdates. \"Automatisch\" (de standaard voor nieuwe installaties) polt sneller rond een verwachte bezorging en langzamer 's nachts; een vaste waarde polt dag en nacht met dat constante interval."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automatisch (aanbevolen)",
         "15": "15 minuten",
         "30": "30 minuten",
         "60": "60 minuten",

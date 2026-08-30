@@ -71,7 +71,7 @@
               "refresh_interval": "Refresh every"
             },
             "data_description": {
-              "refresh_interval": "How often the integration checks PostNL for parcel updates. A slower interval is gentler on PostNL's API; the default of 30 minutes is plenty for most parcels."
+              "refresh_interval": "How often the integration checks PostNL for parcel and letter updates. \"Automatic\" (the default for new installs) speeds up around expected deliveries and slows down overnight; a fixed interval polls at that constant rate around the clock instead."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automatic (recommended)",
         "15": "15 minutes",
         "30": "30 minutes",
         "60": "60 minutes",

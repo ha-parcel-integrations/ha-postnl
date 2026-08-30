@@ -44,6 +44,14 @@ async def async_get_config_entry_diagnostics(
         "entry_options": dict(entry.options),
         "userinfo": async_redact_data(data.userinfo, TO_REDACT),
         "last_update_success": coordinator.last_update_success,
+        "polling": {
+            "current_tier_minutes": coordinator.current_tier_minutes,
+            "update_interval_seconds": (
+                coordinator.update_interval.total_seconds()
+                if coordinator.update_interval
+                else None
+            ),
+        },
         "counts": {
             "receiver": len((coordinator.data or {}).get("receiver", [])),
             "sender": len((coordinator.data or {}).get("sender", [])),

@@ -71,7 +71,7 @@
               "refresh_interval": "Actualiser toutes les"
             },
             "data_description": {
-              "refresh_interval": "Fréquence à laquelle l'intégration interroge PostNL pour les mises à jour des colis. Un intervalle plus lent est plus doux pour l'API de PostNL ; la valeur par défaut de 30 minutes suffit pour la plupart des colis."
+              "refresh_interval": "Fréquence à laquelle l'intégration interroge PostNL pour les mises à jour des colis et courriers. « Automatique » (le défaut pour les nouvelles installations) accélère autour d'une livraison prévue et ralentit la nuit ; un intervalle fixe interroge en continu à ce rythme constant."
             }
           }
         }
@@ -81,6 +81,7 @@
   "selector": {
     "refresh_interval": {
       "options": {
+        "auto": "Automatique (recommandé)",
         "15": "15 minutes",
         "30": "30 minutes",
         "60": "60 minutes",
