@@ -42,7 +42,6 @@ Based upon the original work by [@arjenbos](https://github.com/arjenbos/ha-postn
 
 ## Requirements
 
-- Home Assistant 2024.12 or newer
 - A [PostNL](https://jouw.postnl.nl) account (the credentials you use on jouw.postnl.nl / the PostNL mobile app)
   - Both **Netherlands and Belgium** PostNL accounts are supported — they share the same backend, so your parcels come through either way. (MyMail letter scanning is a Netherlands-only feature and stays empty for Belgian mail.)
 
