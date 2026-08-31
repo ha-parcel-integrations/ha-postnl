@@ -123,6 +123,10 @@
         "name": "Incoming parcels",
         "unit_of_measurement": "parcels"
       },
+      "awaiting_pickup": {
+        "name": "Awaiting pickup",
+        "unit_of_measurement": "parcels"
+      },
       "parcel": {
         "name": "Parcel {barcode}"
       },

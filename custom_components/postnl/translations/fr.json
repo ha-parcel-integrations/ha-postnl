@@ -123,6 +123,10 @@
         "name": "Colis entrants",
         "unit_of_measurement": "colis"
       },
+      "awaiting_pickup": {
+        "name": "En attente de retrait",
+        "unit_of_measurement": "colis"
+      },
       "parcel": {
         "name": "Colis {barcode}"
       },

@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 
 from custom_components.postnl.const import ParcelStatus
 from custom_components.postnl.sensor import (
+    PostNLAwaitingPickupSensor,
     PostNLDeliveredParcelsSensor,
     PostNLEnRouteToServicePointSensor,
     PostNLIncomingParcelsSensor,
@@ -83,6 +84,30 @@ def test_incoming_sensor_counts_only_active_receiver():
     )
     assert sensor.native_value == 1
     assert sensor.extra_state_attributes["parcels"][0]["barcode"] == "A"
+
+
+def test_awaiting_pickup_counts_only_ready_pickup_point_parcels():
+    ready = _parcel(
+        barcode="A", status=ParcelStatus.AT_PICKUP_POINT, pickup=True
+    )
+    sensor = PostNLAwaitingPickupSensor(
+        _coordinator(
+            receiver=[
+                ready,
+                _parcel(barcode="B"),
+                _parcel(barcode="C", status=ParcelStatus.AT_PICKUP_POINT),
+            ]
+        ),
+        _USERINFO,
+    )
+    assert sensor.native_value == 1
+    assert sensor.extra_state_attributes == {"parcels": [ready]}
+
+
+def test_awaiting_pickup_zero_when_no_parcels():
+    sensor = PostNLAwaitingPickupSensor(_coordinator(), _USERINFO)
+    assert sensor.native_value == 0
+    assert sensor.extra_state_attributes == {"parcels": []}
 
 
 def test_parcel_sensor_returns_status_for_known_barcode():

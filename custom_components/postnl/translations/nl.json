@@ -123,6 +123,10 @@
         "name": "Inkomende pakketten",
         "unit_of_measurement": "pakketten"
       },
+      "awaiting_pickup": {
+        "name": "Wacht op ophalen",
+        "unit_of_measurement": "pakketten"
+      },
       "parcel": {
         "name": "Pakket {barcode}"
       },
