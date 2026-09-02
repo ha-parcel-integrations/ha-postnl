@@ -90,8 +90,12 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     "J55": ParcelStatus.IN_TRANSIT,       # verwacht bij PostNL-punt
     "X01": ParcelStatus.IN_TRANSIT,       # zending is klaar voor verzending naar land van bestemming
     "X02": ParcelStatus.IN_TRANSIT,       # yes! je zending is aangekomen in het land van bestemming
+    "X03": ParcelStatus.IN_TRANSIT,       # pakket wordt ingeklaard in het land van bestemming (customs)
+    "X04": ParcelStatus.IN_TRANSIT,       # vrijgegeven in het land van bestemming, doorgestuurd naar geadresseerde
     "X08": ParcelStatus.IN_TRANSIT,       # je zending ligt op een sorteercentrum in land van bestemming
     "X19": ParcelStatus.IN_TRANSIT,       # je zending is de grens over
+    "A21": ParcelStatus.IN_TRANSIT,       # betaald, pakket wordt klaargemaakt voor bezorging (post-customs)
+    "I07": ParcelStatus.IN_TRANSIT,       # retourzending gesorteerd, wordt overgedragen aan afzender
     # --- Real delivery delay / failed attempt: a genuine step back to transit ---
     "G01": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt — lukt vandaag niet
     "G05": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt (delay)
@@ -131,6 +135,7 @@ _OBSERVATION_META_CODES: frozenset[str] = frozenset({
     "A95",  # bezorging wijzigen niet mogelijk
     "A96",  # bezorging wijzigen mogelijk
     "A98",  # voorgemelde zending verrijkt door PostNL regie (data enrichment)
+    "A20",  # verzoek tot betaling kosten voor zending verstuurd (customs invoice notice)
     "J09",  # bezorgmoment bijgewerkt, geen mislukte poging (locker parcel does not move)
     "K33",  # "leeg" placeholder
     "K50",  # RCS melding (notification)
