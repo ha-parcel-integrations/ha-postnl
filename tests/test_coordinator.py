@@ -830,7 +830,7 @@ async def test_transform_shipment_receiver_from_recipient_person_name(hass):
         "colli": {
             "3SXYZ": {
                 "statusPhase": {"message": "ONDERWEG"},
-                "recipient": {"names": {"personName": "Peter Nijssen"}},
+                "recipient": {"names": {"personName": "Jane Doe"}},
             }
         }
     })
@@ -842,7 +842,7 @@ async def test_transform_shipment_receiver_from_recipient_person_name(hass):
         "delivered": False,
     }
     parcel = await coordinator.transform_shipment(shipment)
-    assert parcel["receiver"] == "Peter Nijssen"
+    assert parcel["receiver"] == "Jane Doe"
 
 
 async def test_transform_shipment_receiver_falls_back_to_receiver_title(hass):

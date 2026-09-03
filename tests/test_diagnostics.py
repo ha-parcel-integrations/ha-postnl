@@ -63,7 +63,7 @@ async def test_diagnostics_redacts_parcel_pii():
             "key": "3SABC-NL-1234AB",
             "source_display_name": "Brand",
             "receiver_title": "Peter",
-            "receiver": "Peter Nijssen",
+            "receiver": "Jane Doe",
             "url": "https://jouw.postnl.nl/track-and-trace/3SABC-NL-1234AB",
             "status_message": "ON_THE_WAY",
         }],
