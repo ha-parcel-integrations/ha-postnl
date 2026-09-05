@@ -12,7 +12,7 @@ from homeassistant.util import dt as dt_util
 
 from . import PostNLConfigEntry
 from .coordinator import PostNLCoordinator
-from .device import build_device_info
+from .device import ATTRIBUTION, build_device_info
 
 # The coordinator fans data out to this entity; no per-entity polling.
 PARALLEL_UPDATES = 0
@@ -61,7 +61,7 @@ class PostNLDeliveriesCalendar(
 
     _attr_has_entity_name = True
     _attr_translation_key = "deliveries"
-    _attr_attribution = "Data provided by PostNL"
+    _attr_attribution = ATTRIBUTION
 
     def __init__(
         self, coordinator: PostNLCoordinator, userinfo: dict[str, Any]

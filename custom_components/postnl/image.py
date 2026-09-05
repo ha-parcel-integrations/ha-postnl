@@ -16,7 +16,7 @@ from homeassistant.util import dt as dt_util
 from . import PostNLConfigEntry
 from .const import DOMAIN
 from .coordinator import PostNLCoordinator
-from .device import build_device_info
+from .device import ATTRIBUTION, build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ class PostNLLetterImage(CoordinatorEntity[PostNLCoordinator], ImageEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "letter_image"
     _attr_content_type = "image/jpeg"
-    _attr_attribution = "Data provided by PostNL"
+    _attr_attribution = ATTRIBUTION
 
     def __init__(
         self,

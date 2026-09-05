@@ -14,6 +14,8 @@ from homeassistant.helpers.entity import DeviceInfo
 
 from .const import DOMAIN
 
+ATTRIBUTION = "Data provided by PostNL"
+
 
 def build_device_info(userinfo: dict[str, Any]) -> DeviceInfo:
     """Return DeviceInfo shared by all sensors for this account."""
