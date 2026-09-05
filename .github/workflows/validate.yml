@@ -47,7 +47,7 @@ jobs:
         run: pip install -r requirements-dev.txt
 
       - name: Run tests
-        run: pytest tests/ -v
+        run: python -m pytest tests/ --cov=custom_components.postnl --cov-fail-under=95 -v
 
   ruff:
     name: Lint with Ruff
@@ -58,3 +58,45 @@ jobs:
 
       - name: Ruff
         uses: astral-sh/ruff-action@v4.1.0
+
+  translations:
+    name: Validate translations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Compare translation structures
+        run: python .github/scripts/check_translations.py custom_components/postnl/translations
+
+  policy:
+    name: Check suite policy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check repository policy
+        run: python .github/scripts/check_policy.py
+
+      - name: Check commit messages
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            echo "No pushed commit range to validate."
+            exit 0
+          elif [ "$EVENT_NAME" = "pull_request" ]; then
+            commit_range="$BASE_SHA..$PR_HEAD_SHA"
+          elif [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            commit_range="$HEAD_SHA^..$HEAD_SHA"
+          else
+            commit_range="$BEFORE..$HEAD_SHA"
+          fi
+          python .github/scripts/check_commit_messages.py "$commit_range"

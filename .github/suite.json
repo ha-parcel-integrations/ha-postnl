@@ -1,0 +1,6 @@
+{
+  "kind": "integration",
+  "baseline": 1,
+  "domain": "postnl",
+  "research_api_path": "carrier-research/postnl/api/"
+}
