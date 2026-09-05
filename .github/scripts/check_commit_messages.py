@@ -7,7 +7,6 @@ import re
 import subprocess
 import sys
 
-
 CONVENTIONAL = re.compile(
     r"^(?:feat|fix|refactor|docs|test|ci|chore|build|perf|style|revert)(?:\([^)]+\))?!?: .+"
 )
@@ -15,6 +14,7 @@ RELEASE_BUMP = re.compile(r"^Bump version to \d+\.\d+\.\d+(?:b\d+)?$")
 
 
 def main() -> int:
+    """Validate the subjects and permitted trailers in a commit range."""
     commit_range = sys.argv[1]
     result = subprocess.run(
         ["git", "log", "--format=%H%x1f%s%x1f%b%x1e", commit_range],

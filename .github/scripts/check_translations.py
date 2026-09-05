@@ -9,6 +9,7 @@ from pathlib import Path
 
 
 def leaf_paths(value: object, prefix: str = "") -> set[str]:
+    """Return every leaf path in a JSON value."""
     if isinstance(value, dict):
         paths: set[str] = set()
         for key, child in value.items():
@@ -19,6 +20,7 @@ def leaf_paths(value: object, prefix: str = "") -> set[str]:
 
 
 def main() -> int:
+    """Validate all translation files against the English key structure."""
     translations = Path(sys.argv[1])
     english_path = translations / "en.json"
     if not english_path.is_file():

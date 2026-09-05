@@ -4,15 +4,16 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 
 def fail(message: str) -> None:
+    """Print a policy failure in the GitHub Actions error format."""
     print(f"ERROR: {message}")
 
 
 def main() -> int:
+    """Check the deterministic public-repository conventions."""
     root = Path.cwd()
     suite = json.loads((root / ".github" / "suite.json").read_text())
     domain = suite["domain"]
