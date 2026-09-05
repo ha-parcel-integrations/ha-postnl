@@ -62,6 +62,7 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.RELEASE_BOT_TOKEN }}
+          base: main
           branch: automation/release
           delete-branch: true
           commit-message: Bump version to ${{ steps.release.outputs.version }}
