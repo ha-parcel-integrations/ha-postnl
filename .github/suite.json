@@ -1,5 +1,4 @@
 {
   "kind": "integration",
-  "domain": "postnl",
-  "research_api_path": "carrier-research/postnl/api/"
+  "domain": "postnl"
 }
