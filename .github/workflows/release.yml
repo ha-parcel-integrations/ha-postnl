@@ -1,0 +1,42 @@
+name: Release
+
+# The workflow_run branch filter alone is not a trust boundary: a fork pull
+# request from a branch named main also reports main here. Requiring the
+# triggering event to be a push is what keeps forks away from the release
+# token, so never drop that condition.
+
+on:
+  workflow_run:
+    workflows: [Validate]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only calculate the next release; do not create or update a PR.
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
+    uses: ha-parcel-integrations/.github/.github/workflows/carrier-release.yml@main
+    with:
+      domain: postnl
+      head-sha: ${{ github.event.workflow_run.head_sha || github.sha }}
+      dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    secrets:
+      release-bot-token: ${{ secrets.RELEASE_BOT_TOKEN }}
