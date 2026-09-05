@@ -82,7 +82,7 @@ jobs:
         run: python .github/scripts/check_policy.py
 
       - name: Check commit messages
-        if: github.actor != 'dependabot[bot]'
+        if: github.event.pull_request.user.login != 'dependabot[bot]'
         env:
           EVENT_NAME: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
