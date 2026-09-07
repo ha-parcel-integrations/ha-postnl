@@ -1,5 +1,6 @@
 {
   "name": "PostNL",
+  "content_in_root": false,
   "zip_release": true,
   "filename": "postnl.zip",
   "hide_default_branch": true,
