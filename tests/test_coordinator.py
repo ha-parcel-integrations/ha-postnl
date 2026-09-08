@@ -1409,11 +1409,17 @@ def test_map_observation_status_live_catalogue_2026_09_02():
     assert map_observation_status("I07") == ParcelStatus.IN_TRANSIT
 
 
+def test_map_observation_status_live_catalogue_2026_09_08():
+    """Codes reported by a user (issue #20)."""
+    # "Sorry, bezorgmoment is bijgewerkt" — a delay, variant of G01/G05/T04.
+    assert map_observation_status("K01") == ParcelStatus.IN_TRANSIT
+
+
 def test_map_observation_status_meta_codes_are_silent_null(caplog):
     """Notification/admin codes are known → no movement status, no warning."""
     for code in (
         "A04", "A18", "A19", "A20", "A24", "A25", "A65", "A94", "A95", "A96", "A98",
-        "J09", "K33", "K50",
+        "B03", "J09", "K33", "K50",
     ):
         assert map_observation_status(code, "some text") is None, code
     assert "issues/new" not in caplog.text  # meta codes must not warn

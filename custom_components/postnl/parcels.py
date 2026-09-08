@@ -99,6 +99,7 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     # --- Real delivery delay / failed attempt: a genuine step back to transit ---
     "G01": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt — lukt vandaag niet
     "G05": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt (delay)
+    "K01": ParcelStatus.IN_TRANSIT,       # sorry, bezorgmoment is bijgewerkt (delay, variant of G01/G05/T04)
     "K70": ParcelStatus.IN_TRANSIT,       # bezorging niet gelukt, pakket gaat naar PostNL-punt
     "T04": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt (delay)
     # --- Out for delivery ---
@@ -136,6 +137,7 @@ _OBSERVATION_META_CODES: frozenset[str] = frozenset({
     "A96",  # bezorging wijzigen mogelijk
     "A98",  # voorgemelde zending verrijkt door PostNL regie (data enrichment)
     "A20",  # verzoek tot betaling kosten voor zending verstuurd (customs invoice notice)
+    "B03",  # "leeg" placeholder (variant of K33)
     "J09",  # bezorgmoment bijgewerkt, geen mislukte poging (locker parcel does not move)
     "K33",  # "leeg" placeholder
     "K50",  # RCS melding (notification)
