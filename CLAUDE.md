@@ -3,14 +3,22 @@
 Home Assistant custom integration for PostNL parcel tracking **plus MyMail
 letters and per-letter image entities**. Distributed via HACS; not part of HA
 core. **Silver** quality tier, minimum HA `2024.12.0`. A **fork** of
-`arjenbos/ha-postnl` (see below). Three APIs behind one bearer token.
+`arjenbos/ha-postnl`. Three APIs behind one bearer token.
+
+Three places hold the knowledge, and they do not overlap:
+
+| What | Where |
+|---|---|
+| How this integration is built, and why it is built that way | [`ARCHITECTURE.md`](ARCHITECTURE.md) — read it before touching `auth.py`, one of the three API clients, the image entity, or the status derivation. It also carries the fork/upstream relationship |
+| Endpoint mechanics, payload shapes, status vocabularies | `carrier-research/postnl/api/` (private repo) — the GraphQL shipment list, Track & Trace, MyMail (letters + image bytes) and login endpoints, the Dutch status strings and the `observationCode` vocabulary. **Never** duplicated into this repo |
+| Suite-wide conventions | [`.github/CONVENTIONS.md`](https://github.com/ha-parcel-integrations/.github/blob/main/CONVENTIONS.md) |
+
+This file is the short list of things an agent must not get wrong.
 
 ## Shared conventions — fetch when relevant
 
-Suite-wide rules live in
-[`.github/CONVENTIONS.md`](https://github.com/ha-parcel-integrations/.github/blob/main/CONVENTIONS.md)
-and are **not** repeated here. Don't fetch it every session — fetch it **before**
-you act in one of these areas:
+Don't fetch `CONVENTIONS.md` every session — fetch it **before** you act in one
+of these areas:
 
 | Before you … | Fetch `CONVENTIONS.md` § |
 |---|---|
@@ -18,11 +26,6 @@ you act in one of these areas:
 | add/rename a parcel field, a `ParcelStatus`, or a bus event; change first-refresh or unmapped-status logging | *Parcel contract* (this repo implements it; below is only where PostNL deviates) |
 | consider "fixing" a lint/pattern the skill flags (poll interval, `requests`/sync, inline client) | *Deliberate skill divergences* — don't re-flag |
 | commit, bump, tag, release, or write release notes; add a feature without a test | *Workflow / Commits / Versioning / Testing* |
-
-**API mechanics live in `carrier-research/postnl/api/` (private research repo)** — the GraphQL
-shipment list, Track & Trace, MyMail (letters + image bytes) and login endpoints,
-their payload shapes, the Dutch status strings and the `observationCode`
-vocabulary. Do not duplicate them here.
 
 **Suite-wide tripwire, kept inline on purpose:** the first refresh runs in
 `__init__.py` *before* `async_forward_entry_setups` — `async_setup_entry` sets
@@ -34,129 +37,80 @@ entities. Runtime-only; do not move it back into a platform.
 
 ## Load-bearing PostNL decisions — do not refactor away
 
-**Auth & token refresh (do not weaken)**
-- **PKCE login with re-login fallback** (`auth.py`): try a refresh-token exchange
-  first; on failure re-run the full username/password login; reauth is the last
-  resort. **Order matters — don't reorder.** Deliberately avoids HA's
-  `OAuth2Session` (which would re-introduce the browser-extension onboarding the
-  fork dropped).
-- `check_and_refresh_token` **preserves the old refresh token** when PostNL's
-  response omits a new one, and holds an **`asyncio.Lock`** (with a re-check inside)
-  so two callers never spend the same rotating token twice.
-- **Auth-error split.** Only a definitive credential rejection (`PostNLInvalidAuth`)
-  escalates to `ConfigEntryAuthFailed` / reauth. Any other `PostNLAuthError`
-  (recaptcha, rate-limit, changed widget, network blip) → generic
-  `HomeAssistantError` → retryable `UpdateFailed` / `ConfigEntryNotReady`. This
-  stopped the "logged out ~once a day" bug — do not collapse these.
-- **Reauth guards the account**: `reauth_confirm` uses `async_set_unique_id` +
-  `_abort_if_unique_id_mismatch` so a *different* account's credentials abort
-  instead of rebinding.
+**Auth order is load-bearing** (`auth.py`): refresh-token exchange first, then a
+full username/password re-login, then reauth as the last resort. **Don't
+reorder.** `check_and_refresh_token` **preserves the old refresh token** when
+PostNL omits a new one, and holds an `asyncio.Lock` (re-check inside) so two
+callers never spend the same rotating token twice.
 
-**The three APIs (integration behaviour)**
-- **Every `jouw_api` call has a `(10, 60)` timeout** — `requests` has no
-  session-level default; a hanging server would block an executor thread (and the
-  whole refresh) forever.
-- **API clients are reused across polls** — rebuilt only when the access token
-  changes (`_api_token`); each owns a `requests.Session` connection pool that would
-  otherwise leak every poll.
-- **Anything that calls `jouw_api` outside the poll cycle must go through
-  `coordinator.async_get_jouw_api()`, never read `coordinator.jouw_api` directly.**
-  (`_delivered_history` and `transform_shipment` read it directly too, but only
-  ever run synchronously inside `_async_update_data`'s own call chain, right after
-  that method's refresh — they're part of the poll cycle, not an exception to this
-  rule.) The refresh-then-maybe-rebuild logic used to live inline in
-  `_async_update_data`; it now lives in `async_get_jouw_api()`, which
-  `_async_update_data` just awaits. `PostNLLetterImage.async_image()` is the reason
-  this exists — it runs on demand, whenever a client requests the photo,
-  independently of the poll cycle, so `jouw_api`'s baked-in bearer token can have
-  expired since the last poll (30 min default interval; PostNL's own access tokens
-  are not guaranteed to live that long) — reading the cached client directly
-  produced a 401 on every fetch until the next poll happened to refresh it.
-- `aiohttp.ClientError` is not caught in the coordinator (wrapped automatically);
-  `requests` errors *are* caught (executor jobs re-raise them).
-- **`jouw.postnl.nl` is the universal backend — never route to `.be`.** The GraphQL
-  inbox is account-scoped, not domain-scoped (`.be` returns a byte-identical list);
-  MyMail on `.be` returns HTTP 400 (NL-only feature). A NL/BE dropdown would be a
-  no-op for parcels and break letters — **do not add one.** Belgian accounts are
-  already covered. The real Belgium gap is **bpost**.
+**The auth-error split stopped the "logged out once a day" bug — do not collapse
+it.** Only `PostNLInvalidAuth` (a definitive credential rejection) escalates to
+`ConfigEntryAuthFailed`/reauth. Every other `PostNLAuthError` (recaptcha,
+rate-limit, changed widget, network blip) → generic `HomeAssistantError` →
+retryable `UpdateFailed`/`ConfigEntryNotReady`. Reauth guards the account with
+`async_set_unique_id` + `_abort_if_unique_id_mismatch`.
 
-**MyMail letters & images**
-- **Letter image URLs require auth** — the `PostNLLetterImage` entity fetches bytes
-  server-side and serves them through HA's authenticated image proxy. **Do not
-  switch to a redirect scheme.** MyMail also needs app-identification headers that
-  occasionally need bumping when PostNL ships a new app version (see `carrier-research/postnl/api/`).
-- `postnl_letter_announced` fires per new letter; `_known_letter_ids` mirrors
-  `_known_state`, reset only after a successful letters fetch.
+**Never read `coordinator.jouw_api` directly from outside the poll cycle — use
+`coordinator.async_get_jouw_api()`.** The image entity fetches on demand, so the
+cached client's baked-in token can be expired; reading it directly produced a 401
+on every fetch until the next poll. (`_delivered_history` and
+`transform_shipment` read it directly, but run inside `_async_update_data`'s own
+chain — part of the poll cycle, not an exception.)
 
-**Status mapping & per-parcel resilience**
-- **`map_parcel_status` prefers `observationCode` over the Dutch human string.**
-  `delivered` short-circuits first; then `derive_observation_status` (`parcels.py`)
-  walks the same observation list `build_history` uses (milestone/meta
-  carry-forward included) and returns the current stage — this runs on
-  **every** active-path poll, independent of the opt-in `CONF_INCLUDE_HISTORY`
-  option (that option only gates whether the full timeline is *exposed* on
-  `history`; the underlying observations are always fetched and always
-  consulted for status). Only when that comes back `None` — no observations,
-  or none recognised — does it fall back to **ordered substring patterns
-  (more specific first)** against `statusPhase.message`. The raw string lives
-  on `raw_status`, never `status`, either way. Unmapped on both paths →
-  `ParcelStatus.UNKNOWN`. Changed after hki-parcels-card discussion #17: PostNL's
-  free text drifts wording (5 closed "unrecognised status" issues, all the same
-  root cause), `observationCode` doesn't have that failure mode.
-- **`receiver`/`weight`/`dimensions`**: weight/dimensions come from native g+mm
-  converted to canonical kg+cm with the long edge as `length`; delivered parcels
-  skip T&T → both `None`.
-- **One broken parcel no longer fails the refresh.** The active-path T&T call
-  degrades per parcel: reuse the last good transform (`_parcel_cache`, pruned each
-  poll), else GraphQL-only fields; `UpdateFailed` is the last resort when there's
-  nothing to show.
-- Unknown-status warnings fire once per distinct value (parcel status +
-  history `observationCode`), with an `issues/new` link; one-shot sets
-  `_LOGGED_UNKNOWN_STATUSES` / `_LOGGED_UNKNOWN_OBSERVATION_CODES`.
+**`jouw.postnl.nl` is the universal backend — never route to `.be`.** The GraphQL
+inbox is account-scoped (`.be` returns a byte-identical list); MyMail on `.be`
+returns HTTP 400. A NL/BE dropdown is a no-op for parcels and breaks letters —
+**do not add one.** The real Belgium gap is bpost.
 
-**History (opt-in, default OFF — `CONF_INCLUDE_HISTORY`)** — gates only the
-`history` attribute; the observations it's built from are fetched and used for
-live status regardless (see above).
-- **Delivered parcels get history too** — the delivered short-circuit makes the
-  extra T&T call via `_delivered_history`. **Non-fatal** (a `RequestException` →
-  `None`), cached per barcode (one call per parcel ever); failures are NOT cached
-  so the next poll retries.
-- **Milestone vs meta + carry-forward (do not undo).** Only milestone codes carry a
-  movement status; meta codes (ETA recalcs, enrichment, …) inherit the previous
-  milestone's stage so the timeline never bounces backward on a cosmetic event.
-  Baseline before the first milestone is `registered`. The one legitimate step-back
-  is a real delay/failure. Unmapped codes stay `null` and do NOT carry forward. A
-  fixed status for ETA codes is wrong by construction.
+**Every `jouw_api` call needs its `(10, 60)` timeout** — `requests` has no
+session-level default and a hang would block an executor thread, and the whole
+refresh, forever. **API clients are reused across polls**, rebuilt only on an
+access-token change (`_api_token`); each owns a `requests.Session` pool that
+would otherwise leak every poll.
 
-**Events, triggers & surfaces**
-- Incoming events (`postnl_parcel_registered` / `_status_changed` / `_delivered` /
-  `_delivery_time_changed`) run over the **full receiver list** (active +
-  delivered): change **to** DELIVERED fires only `_delivered`; already-delivered
-  fires nothing; `registered` only for not-yet-delivered new barcodes.
-  `delivery_time_changed` only on a non-null `planned_*` that differs. State in
-  `_known_state` / `_known_delivery_times`.
-- Outgoing (`postnl_outgoing_parcel_status_changed` / `_outgoing_parcel_delivered`)
-  run over the **full `data['sender']`** list — own shipments *and* returns both
-  land in `senderShipments`, so returns are covered for free. `delivered` wins the
-  terminal hop; **no** outgoing `registered` / `delivery_time_changed`. State in
-  `_known_outgoing_state`.
-- `device_id` on every payload (`_cached_device_id`). `device_trigger.py` exposes
-  six no-code triggers (four parcel + `letter_announced` + the outgoing pair).
-- **Sensor cleanup is sensor-scoped**: filter `domain == "sensor"` before treating
-  an `{account_id}_*` unique_id as a barcode, else it deletes the refresh button
-  **and the letter image entities**. `_last_update` (and other non-parcel
-  `{account_id}_*` sensors) **must** stay in `non_parcel_unique_ids`.
-- **Refresh `button`**, **diagnostic `last_update` sensor**
-  (`coordinator.last_success_time`), **deliveries `calendar`** (read-only over
-  non-delivered receiver parcels, no extra API calls, enabled by default; letters
-  are NOT on it). Per-parcel sensors are removed by the summary sensor (the old
-  self-remove raced and left ghosts).
-- **Entities**: `has_entity_name` + `translation_key` (no `_attr_name`), icons in
-  `icons.json`, translated units; device name `"PostNL (<email>)"`;
-  `_unrecorded_attributes` keeps parcel/letter lists (and `history`) out of the
-  recorder. **Options flow** has no `entry.add_update_listener` —
-  `async_schedule_reload` on submit. `CONF_REFRESH_INTERVAL` = 15/30/60/120/240
-  min, default 30.
+**Letter image URLs require auth** — `PostNLLetterImage` fetches bytes
+server-side and serves them via HA's authenticated image proxy. **Do not switch
+to a redirect scheme.** MyMail's app-identification headers need bumping when
+PostNL ships a new app version.
+
+**`map_parcel_status` prefers `observationCode` over the Dutch free text** —
+`delivered` short-circuits, then `derive_observation_status` runs on **every**
+active-path poll regardless of `CONF_INCLUDE_HISTORY` (that option gates only
+whether `history` is *exposed*). Ordered substring patterns against
+`statusPhase.message` are the fallback, only when derivation returns `None`. Raw
+string always on `raw_status`, never `status`. PostNL's free text drifts wording
+— five closed "unrecognised status" issues, one root cause — so **don't invert
+this preference.**
+
+**Milestone vs meta carry-forward — do not undo.** Only milestone codes carry a
+movement status; meta codes (ETA recalcs, enrichment) inherit the previous
+milestone's stage so the timeline never bounces backward. Baseline before the
+first milestone is `registered`. Unmapped codes stay `null` and do NOT carry
+forward. **A fixed status for ETA codes is wrong by construction.**
+
+**One broken parcel must not fail the refresh** — the active-path T&T call
+degrades per parcel via `_parcel_cache` (pruned each poll), else GraphQL-only
+fields; `UpdateFailed` is the last resort. `_delivered_history` is non-fatal and
+cached per barcode, but **failures are not cached** so the next poll retries.
+
+**Sensor cleanup is sensor-scoped**: filter `domain == "sensor"` before treating
+an `{account_id}_*` unique_id as a barcode, else it deletes the refresh button
+**and the letter image entities**. `_last_update` and every other non-parcel
+`{account_id}_*` sensor **must** stay in `non_parcel_unique_ids`. Per-parcel
+sensors are removed by the summary sensor (self-remove raced and left ghosts).
+
+**Options flow** has no `entry.add_update_listener` — `async_schedule_reload` on
+submit. `CONF_REFRESH_INTERVAL` = 15/30/60/120/240 min **plus `"auto"`** (dynamic
+status-driven polling, rolled out 2026-08-30; new entries default to `"auto"`,
+pre-existing entries keep their numeric value). Full tier/quiet-window/stagger
+model: [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
+**Events** — incoming run over the **full receiver list** (active + delivered):
+the hop *to* DELIVERED fires only `_delivered`, already-delivered fires nothing,
+`registered` only for not-yet-delivered new barcodes. Outgoing run over the
+**full `data['sender']`** list — own shipments *and* returns both land in
+`senderShipments`, so returns are covered for free; **no** outgoing `registered`
+/ `delivery_time_changed`.
 
 ## Planned / skipped
 
@@ -166,15 +120,6 @@ live status regardless (see above).
   `async-dependency` / `inject-websession` (Platinum) — the APIs use `requests`
   via executor jobs, aiohttp would be a big refactor for marginal gain.
 
-## Fork / upstream relationship
-
-Fork of [`arjenbos/ha-postnl`](https://github.com/arjenbos/ha-postnl), maintained
-by [@peternijssen](https://github.com/peternijssen). HACS releases ship from this
-fork; fixes that apply upstream are filed as separate PRs against `arjenbos/main`.
-`manifest.json` still lists `@arjenbos` as codeowner. Cross-repo coordination is in
-`CHANGES.md`. Branding uses the upstream assets in `home-assistant/brands` (PostNL
-has a stable core icon) — unlike the other carriers' local `brand/`.
-
 ## Running tests
 
 ```
@@ -182,4 +127,5 @@ python -m pytest tests/ --cov=custom_components.postnl
 ```
 
 Coverage must stay **above 95%** (silver `test-coverage` rule). Run before
-committing.
+committing. A code change updates the README, `ARCHITECTURE.md` and this file in
+the same commit; API mechanics go to `carrier-research/postnl/api/`, never here.
