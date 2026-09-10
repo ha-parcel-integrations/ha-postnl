@@ -30,3 +30,9 @@ known-first-party = ["custom_components"]
 # Tests don't need docstrings (PEP 257 / D rules); everything else stays on.
 # A common HACS pragmatism — Home Assistant core does document its tests.
 "tests/**" = ["D"]
+# Tooling scripts (and their tests) are exempt from docstrings too. Carrier
+# repos have no scripts/ dir, so this is a no-op there; the template does.
+"scripts/**" = ["D"]
+# Variant overlays are template-only (bootstrap.py resolves them into a carrier
+# where their tests land under tests/). Their overlay tests are D-exempt too.
+"variants/**/tests/**" = ["D"]
