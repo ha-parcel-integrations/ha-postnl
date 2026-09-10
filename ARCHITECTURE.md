@@ -124,15 +124,15 @@ rather than silently rebinding.
 
 ## Dynamic polling
 
-Rolled out 2026-08-30. `CONF_REFRESH_INTERVAL` accepts the numeric options
-`15/30/60/120/240` **plus `"auto"`**. New entries default to `"auto"`
-(`DEFAULT_NEW_REFRESH_INTERVAL`); an entry created before the option existed
-keeps whatever it already has, numeric or auto (`DEFAULT_REFRESH_INTERVAL` = 30).
+There is no user-facing polling interval — a deliberate suite-wide choice, not
+a gap. Rolled out as an opt-in `"auto"` dropdown value on 2026-08-30, then
+converged to unconditional: the `refresh_interval` option is gone entirely, and
+an entry that still carries a stale value in its stored options is simply never
+read for one.
 
-For a fixed setting the configured value is the final word. For `"auto"` the
-initial interval is merely a starting point — the hot cadence, so the first poll
-after setup happens promptly — and `_async_update_data` recomputes it every
-refresh via `_next_update_interval`:
+The coordinator's initial interval is merely a starting point — the hot cadence,
+so the first poll after setup happens promptly — and `_async_update_data`
+recomputes it every refresh via `_next_update_interval`:
 
 - **Quiet window** (`QUIET_WINDOW_START_HOUR` 0 → `QUIET_WINDOW_END_HOUR` 6):
   no polling between those local hours except two daily anchors (00:00 and
@@ -259,7 +259,9 @@ the recorder.
 
 **Options flow** has no `entry.add_update_listener`; it calls
 `async_schedule_reload` on submit. This is the account-based half of the suite's
-two options models.
+two options models. Two collapsible sections remain — `delivered` and
+`history`; the `polling` one went away with the interval option (see **Dynamic
+polling** above).
 
 ## Fork / upstream relationship
 

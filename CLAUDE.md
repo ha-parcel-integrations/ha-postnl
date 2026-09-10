@@ -24,7 +24,7 @@ of these areas:
 |---|---|
 | touch entities, sensors, **image entity**, config/options flow, coordinator, diagnostics, translations | *Home Assistant developer docs* (the MyMail photos use the [image entity](https://developers.home-assistant.io/docs/core/entity/image) page). Don't rely on memory |
 | add/rename a parcel field, a `ParcelStatus`, or a bus event; change first-refresh or unmapped-status logging | *Parcel contract* (this repo implements it; below is only where PostNL deviates) |
-| consider "fixing" a lint/pattern the skill flags (poll interval, `requests`/sync, inline client) | *Deliberate skill divergences* — don't re-flag |
+| consider "fixing" a lint/pattern the skill flags (`requests`/sync, inline client) | *Deliberate skill divergences* — don't re-flag |
 | commit, bump, tag, release, or write release notes; add a feature without a test | *Workflow / Commits / Versioning / Testing* |
 
 **Suite-wide tripwire, kept inline on purpose:** the first refresh runs in
@@ -100,10 +100,17 @@ an `{account_id}_*` unique_id as a barcode, else it deletes the refresh button
 sensors are removed by the summary sensor (self-remove raced and left ghosts).
 
 **Options flow** has no `entry.add_update_listener` — `async_schedule_reload` on
-submit. `CONF_REFRESH_INTERVAL` = 15/30/60/120/240 min **plus `"auto"`** (dynamic
-status-driven polling, rolled out 2026-08-30; new entries default to `"auto"`,
-pre-existing entries keep their numeric value). Full tier/quiet-window/stagger
-model: [`ARCHITECTURE.md`](ARCHITECTURE.md).
+submit. Two sections left, `delivered` and `history`.
+
+**Polling cadence is not configurable — don't add the option back.** The
+Section 2.2 account-based algorithm always runs: `_async_update_data` recomputes
+`update_interval` at the end of every refresh (quiet window 00:00–06:00 with two
+anchors, hot 15 min / mid 45 min, never a full stop because the mid-tier poll is
+also how a new shipment or letter is discovered, plus a per-install stagger).
+Mail piggybacks on whatever cadence parcels are running at — **no separate
+letter cadence.** The `refresh_interval` dropdown (Phase 1, 4.8.0) is gone; a
+stale stored value is never read. Full model:
+[`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 **Events** — incoming run over the **full receiver list** (active + delivered):
 the hop *to* DELIVERED fires only `_delivered`, already-delivered fires nothing,

@@ -64,31 +64,12 @@
             "data_description": {
               "include_history": "Add a per-parcel history attribute listing each status update (timestamp, status, original text). Off by default."
             }
-          },
-          "polling": {
-            "name": "Polling",
-            "data": {
-              "refresh_interval": "Refresh every"
-            },
-            "data_description": {
-              "refresh_interval": "How often the integration checks PostNL for parcel and letter updates. \"Automatic\" (the default for new installs) speeds up around expected deliveries and slows down overnight; a fixed interval polls at that constant rate around the clock instead."
-            }
           }
         }
       }
     }
   },
   "selector": {
-    "refresh_interval": {
-      "options": {
-        "auto": "Automatic (recommended)",
-        "15": "15 minutes",
-        "30": "30 minutes",
-        "60": "60 minutes",
-        "120": "120 minutes",
-        "240": "240 minutes"
-      }
-    },
     "delivered_filter_type": {
       "options": {
         "days": "Days",

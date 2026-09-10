@@ -64,31 +64,12 @@
             "data_description": {
               "include_history": "Ajoute un attribut d'historique par colis listant chaque mise à jour de statut (horodatage, statut, texte d'origine). Désactivé par défaut."
             }
-          },
-          "polling": {
-            "name": "Actualisation",
-            "data": {
-              "refresh_interval": "Actualiser toutes les"
-            },
-            "data_description": {
-              "refresh_interval": "Fréquence à laquelle l'intégration interroge PostNL pour les mises à jour des colis et courriers. « Automatique » (le défaut pour les nouvelles installations) accélère autour d'une livraison prévue et ralentit la nuit ; un intervalle fixe interroge en continu à ce rythme constant."
-            }
           }
         }
       }
     }
   },
   "selector": {
-    "refresh_interval": {
-      "options": {
-        "auto": "Automatique (recommandé)",
-        "15": "15 minutes",
-        "30": "30 minutes",
-        "60": "60 minutes",
-        "120": "120 minutes",
-        "240": "240 minutes"
-      }
-    },
     "delivered_filter_type": {
       "options": {
         "days": "Jours",

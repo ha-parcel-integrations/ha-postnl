@@ -77,7 +77,7 @@ Based upon the original work by [@arjenbos](https://github.com/arjenbos/ha-postn
 
 ## Options
 
-Click **Configure** on the integration card. The form is split into three
+Click **Configure** on the integration card. The form is split into two
 sections:
 
 ### Delivered parcels
@@ -93,17 +93,11 @@ sections:
 |---|---|
 | Include status history | Adds a `history` attribute to each parcel — the ordered list of status updates (timestamp, canonical status, original PostNL text), capped to the most recent 20. **Off by default.** The attribute is kept out of the recorder database. |
 
-### Polling
-
-| Option | Description |
-|---|---|
-| Refresh every | **Automatic**, or a fixed **15 / 30 / 60 / 120 / 240 minutes**. New installs default to Automatic; existing installs keep their current fixed value until changed. Changes take effect immediately, no HA restart needed. See [Dynamic polling](#dynamic-polling) below. |
-
 ## Dynamic polling
 
-You can now set **Refresh every** to **Automatic** instead of a fixed number
-of minutes. Instead of polling PostNL at the same rate around the clock, the
-integration adjusts its own cadence to what your parcels are actually doing:
+Polling isn't a setting here — instead of checking PostNL at the same rate
+around the clock, the integration adjusts its own cadence to what your
+parcels are actually doing:
 
 - **Quiet hours** — no polling between 00:00–06:00 local time, aside from one
   catch-up check at each end of that window (around midnight and around 6
@@ -121,11 +115,9 @@ integration adjusts its own cadence to what your parcels are actually doing:
 Delivered parcels never affect the cadence — only what's still in transit
 counts.
 
-This is opt-in for now, but it's expected to become the default — and
-eventually the only — polling behaviour across the parcel-integrations
-suite. If you try Automatic, we'd genuinely like to hear how it goes:
-share your experience in [this
-discussion](https://github.com/orgs/ha-parcel-integrations/discussions/12).
+Installs that were still on a fixed interval move over automatically —
+nothing to change. This is now the polling behaviour across the
+parcel-integrations suite, where the cadence is no longer a setting anywhere.
 
 ## Removal
 

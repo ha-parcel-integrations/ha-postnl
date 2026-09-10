@@ -5,12 +5,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from custom_components.postnl.const import (
     CAPABILITIES,
     CONF_INCLUDE_HISTORY,
-    CONF_REFRESH_INTERVAL,
     DOMAIN,
     HOT_INTERVAL_MINUTES,
     KNOWN_CAPABILITIES,
     MID_INTERVAL_MINUTES,
-    REFRESH_INTERVAL_AUTO,
     STAGGER_MINUTES,
     ParcelStatus,
 )
@@ -20,8 +18,6 @@ from custom_components.postnl.coordinator import (
     _in_quiet_window,
     _next_anchor,
     _next_update_interval,
-    _refresh_interval,
-    _refresh_setting,
     _stagger_minutes,
 )
 from custom_components.postnl.letters import (
@@ -381,35 +377,6 @@ def test_convert_native_dimensions_rounds_text_to_integers():
 
 
 # ---------------------------------------------------------------------------
-# _refresh_interval
-# ---------------------------------------------------------------------------
-
-
-def test_refresh_interval_defaults_to_30_minutes_when_option_unset():
-    entry = MagicMock()
-    entry.options = {}
-    assert _refresh_interval(entry).total_seconds() == 30 * 60
-
-
-def test_refresh_interval_reads_from_options():
-    entry = MagicMock()
-    entry.options = {"refresh_interval": 60}
-    assert _refresh_interval(entry).total_seconds() == 60 * 60
-
-
-def test_refresh_interval_starts_hot_when_auto():
-    entry = MagicMock()
-    entry.options = {CONF_REFRESH_INTERVAL: REFRESH_INTERVAL_AUTO}
-    assert _refresh_interval(entry).total_seconds() == HOT_INTERVAL_MINUTES * 60
-
-
-def test_refresh_setting_passes_through_auto():
-    entry = MagicMock()
-    entry.options = {CONF_REFRESH_INTERVAL: REFRESH_INTERVAL_AUTO}
-    assert _refresh_setting(entry) == REFRESH_INTERVAL_AUTO
-
-
-# ---------------------------------------------------------------------------
 # Dynamic polling (Section 2.2, account-based) — pure helpers
 # ---------------------------------------------------------------------------
 
@@ -531,10 +498,7 @@ def _empty_shipments() -> MagicMock:
     })
 
 
-async def test_auto_mode_recomputes_interval_and_never_stops(hass):
-    entry = _polling_entry(hass, {CONF_REFRESH_INTERVAL: REFRESH_INTERVAL_AUTO})
-    coordinator = PostNLCoordinator(hass, entry)
-
+async def _run_one_refresh(coordinator):
     with (
         patch(
             "custom_components.postnl.coordinator.PostNLGraphql.shipments",
@@ -546,29 +510,34 @@ async def test_auto_mode_recomputes_interval_and_never_stops(hass):
         ),
     ):
         await coordinator._async_update_data()
+
+
+def test_coordinator_starts_on_the_hot_cadence(hass):
+    """Before any refresh has run, the first poll is scheduled hot."""
+    coordinator = PostNLCoordinator(hass, _polling_entry(hass, {}))
+
+    assert coordinator.update_interval == timedelta(minutes=HOT_INTERVAL_MINUTES)
+    assert coordinator.current_tier_minutes is None
+
+
+async def test_polling_recomputes_interval_and_never_stops(hass):
+    """No option gates this: an empty account still polls, for discovery."""
+    coordinator = PostNLCoordinator(hass, _polling_entry(hass, {}))
+
+    await _run_one_refresh(coordinator)
 
     assert coordinator.current_tier_minutes == MID_INTERVAL_MINUTES
     assert coordinator.update_interval is not None
 
 
-async def test_fixed_mode_keeps_configured_interval(hass):
-    entry = _polling_entry(hass, {CONF_REFRESH_INTERVAL: 60})
-    coordinator = PostNLCoordinator(hass, entry)
+async def test_a_legacy_refresh_interval_option_is_ignored(hass):
+    """An entry saved while the polling dropdown existed still polls dynamically."""
+    coordinator = PostNLCoordinator(hass, _polling_entry(hass, {"refresh_interval": 60}))
 
-    with (
-        patch(
-            "custom_components.postnl.coordinator.PostNLGraphql.shipments",
-            new=_empty_shipments(),
-        ),
-        patch(
-            "custom_components.postnl.coordinator.PostNLJouwAPI.letters",
-            new=MagicMock(return_value={"screen": {"sections": []}}),
-        ),
-    ):
-        await coordinator._async_update_data()
+    await _run_one_refresh(coordinator)
 
-    assert coordinator.current_tier_minutes is None
-    assert coordinator.update_interval == timedelta(minutes=60)
+    assert coordinator.current_tier_minutes == MID_INTERVAL_MINUTES
+    assert coordinator.update_interval != timedelta(minutes=60)
 
 
 # ---------------------------------------------------------------------------
