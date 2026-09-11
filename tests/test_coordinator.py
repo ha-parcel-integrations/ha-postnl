@@ -1367,6 +1367,12 @@ def test_map_observation_status_live_catalogue_2026_08_29():
     assert map_observation_status("J23") == ParcelStatus.AT_PICKUP_POINT
 
 
+def test_map_observation_status_live_catalogue_2026_09_11():
+    """Delivered-at-agreed-location code reported as unknown (2026-09-11 log)."""
+    # "Zending is bezorgd op de afgesproken plek" — variant of I01.
+    assert map_observation_status("I12") == ParcelStatus.DELIVERED
+
+
 def test_map_observation_status_live_catalogue_2026_09_02():
     """Customs-crossing codes reported by gargs (issue #19)."""
     # Import clearance in progress / released, still moving through customs.
