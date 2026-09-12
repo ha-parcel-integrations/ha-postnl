@@ -143,11 +143,10 @@ recomputes it every refresh via `_next_update_interval`:
   parcel is `out_for_delivery` within `HOT_LOOKAHEAD_HOURS` (1) of its
   `planned_from`, or has no `planned_from` at all.
 - **Mid tier** (`MID_INTERVAL_MINUTES` 45) for anything else still in flight.
-- **It never fully stops.** This is the account-based model (dynamic-polling.md
-  Section 2.2): one account call returns the full receiver, sender *and* letters
-  state, so the mid-tier poll is also the only way a new shipment or letter gets
-  discovered. Unlike a barcode-based coordinator, `_hottest_tier_minutes` never
-  returns `None`.
+- **It never fully stops.** This is the account-based model: one account call
+  returns the full receiver, sender *and* letters state, so the mid-tier poll
+  is also the only way a new shipment or letter gets discovered. Unlike a
+  barcode-based coordinator, `_hottest_tier_minutes` never returns `None`.
 - **Stagger** (`STAGGER_MINUTES` 7): a deterministic per-install offset — a
   SHA-256 hash of the config entry id, not random — added to every computed
   interval so installs don't all hit an anchor or tier boundary at the same

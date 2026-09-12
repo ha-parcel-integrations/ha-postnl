@@ -67,7 +67,7 @@ def _next_anchor(now: datetime) -> datetime:
 
 
 def _hottest_tier_minutes(active_parcels: list[dict], now: datetime) -> int:
-    """Tier for the account-based model (dynamic-polling.md Section 2.2).
+    """Tier for the account-based model.
 
     Unlike a barcode-based coordinator this never returns ``None`` — a single
     account call already returns the full receiver + sender + letters state,
