@@ -1402,6 +1402,11 @@ def test_map_observation_status_received_by_postnl_variant_2026_09_18():
     assert map_observation_status("C02") == ParcelStatus.IN_TRANSIT
 
 
+def test_map_observation_status_pickup_from_sender_2026_09_18():
+    """F01 reported as unknown (comment on issue #23)."""
+    assert map_observation_status("F01") == ParcelStatus.IN_TRANSIT
+
+
 def test_map_observation_status_live_catalogue_2026_09_02():
     """Customs-crossing codes reported by gargs (issue #19)."""
     # Import clearance in progress / released, still moving through customs.

@@ -78,6 +78,7 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     # --- In the network (in_transit) ---
     "B01": ParcelStatus.IN_TRANSIT,       # ontvangen door PostNL
     "C02": ParcelStatus.IN_TRANSIT,       # pakket is ontvangen door PostNL (variant of B01)
+    "F01": ParcelStatus.IN_TRANSIT,       # pakket wordt opgehaald (collected from the sender)
     "J01": ParcelStatus.IN_TRANSIT,       # gesorteerd
     "R01": ParcelStatus.IN_TRANSIT,       # zending is gesorteerd (variant of J01)
     "J04": ParcelStatus.IN_TRANSIT,       # voorgemeld en gescand op rit
