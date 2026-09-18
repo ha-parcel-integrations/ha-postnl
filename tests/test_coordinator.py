@@ -1397,6 +1397,11 @@ def test_map_observation_status_locker_opened_is_known_non_movement_2026_09_18()
     assert "J46" in _OBSERVATION_META_CODES
 
 
+def test_map_observation_status_received_by_postnl_variant_2026_09_18():
+    """C02 reported as unknown (issue #23): variant of B01."""
+    assert map_observation_status("C02") == ParcelStatus.IN_TRANSIT
+
+
 def test_map_observation_status_live_catalogue_2026_09_02():
     """Customs-crossing codes reported by gargs (issue #19)."""
     # Import clearance in progress / released, still moving through customs.
