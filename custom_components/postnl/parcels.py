@@ -140,6 +140,7 @@ _OBSERVATION_META_CODES: frozenset[str] = frozenset({
     "A20",  # verzoek tot betaling kosten voor zending verstuurd (customs invoice notice)
     "B03",  # "leeg" placeholder (variant of K33)
     "J09",  # bezorgmoment bijgewerkt, geen mislukte poging (locker parcel does not move)
+    "J46",  # locker van pakketautomaat geopend door chauffeur (locker handling, parcel does not move)
     "K33",  # "leeg" placeholder
     "K50",  # RCS melding (notification)
 })

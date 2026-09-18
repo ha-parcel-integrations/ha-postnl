@@ -26,6 +26,7 @@ from custom_components.postnl.letters import (
     parse_letter_date,
 )
 from custom_components.postnl.parcels import (
+    _OBSERVATION_META_CODES,
     _convert_native_dimensions,
     _delivery_dt,
     _extract_observations,
@@ -1388,6 +1389,12 @@ def test_map_observation_status_live_catalogue_2026_09_11():
     """Delivered-at-agreed-location code reported as unknown (2026-09-11 log)."""
     # "Zending is bezorgd op de afgesproken plek" — variant of I01.
     assert map_observation_status("I12") == ParcelStatus.DELIVERED
+
+
+def test_map_observation_status_locker_opened_is_known_non_movement_2026_09_18():
+    """J46 reported as unknown (issue #24): a known event, not a milestone."""
+    assert map_observation_status("J46") is None
+    assert "J46" in _OBSERVATION_META_CODES
 
 
 def test_map_observation_status_live_catalogue_2026_09_02():
