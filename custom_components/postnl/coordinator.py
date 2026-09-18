@@ -611,7 +611,7 @@ class PostNLCoordinator(DataUpdateCoordinator):
                     planned_from = shipment.get('deliveryWindowFrom')
                     planned_to = shipment.get('deliveryWindowTo')
 
-                status_message = colli.get('statusPhase', {}).get('message', "Unknown")
+                status_message = (colli.get('statusPhase') or {}).get('message', "Unknown")
                 recipient_name = (
                     colli.get('recipient', {}).get('names', {}).get('personName')
                 )

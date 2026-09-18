@@ -693,6 +693,23 @@ async def test_transform_shipment_sender_ignores_shared_visibility_name(hass):
     assert parcel["raw"]["source_display_name"] == "Account Owner A"
 
 
+async def test_transform_shipment_tolerates_null_status_phase(hass):
+    coordinator = _make_coordinator(hass)
+    coordinator.jouw_api.track_and_trace = MagicMock(return_value={
+        "colli": {"3SNULL": {"statusPhase": None}}
+    })
+    shipment = {
+        "key": "K25",
+        "barcode": "3SNULL",
+        "title": "Shop",
+        "sourceAccountId": None,
+        "sourceDisplayName": None,
+        "delivered": False,
+    }
+    parcel = await coordinator.transform_shipment(shipment)
+    assert parcel["barcode"] == "3SNULL"
+
+
 async def test_transform_shipment_source_display_name_is_null_for_own_parcels(hass):
     # PostNL leaves sourceDisplayName null unless the parcel is shared; the
     # raw field must not be back-filled with the title (#13).
