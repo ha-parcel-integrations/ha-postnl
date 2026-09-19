@@ -1391,10 +1391,10 @@ def test_map_observation_status_live_catalogue_2026_09_11():
     assert map_observation_status("I12") == ParcelStatus.DELIVERED
 
 
-def test_map_observation_status_locker_opened_is_known_non_movement_2026_09_18():
-    """J46 reported as unknown (issue #24): a known event, not a milestone."""
-    assert map_observation_status("J46") is None
-    assert "J46" in _OBSERVATION_META_CODES
+def test_map_observation_status_locker_opened_by_driver_2026_09_18():
+    """J46 reported as unknown (issue #24): return parcel collected from a locker."""
+    assert map_observation_status("J46") == ParcelStatus.IN_TRANSIT
+    assert "J46" not in _OBSERVATION_META_CODES
 
 
 def test_map_observation_status_received_by_postnl_variant_2026_09_18():
