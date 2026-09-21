@@ -21,13 +21,13 @@
         "default": "mdi:package-variant-closed"
       },
       "outgoing_parcels": {
-        "default": "mdi:package-variant-closed"
+        "default": "mdi:package-up"
       },
       "delivered_parcels": {
         "default": "mdi:package-variant"
       },
       "outgoing_delivered_parcels": {
-        "default": "mdi:package-variant"
+        "default": "mdi:package-check"
       },
       "next_delivery": {
         "default": "mdi:clock-fast"
