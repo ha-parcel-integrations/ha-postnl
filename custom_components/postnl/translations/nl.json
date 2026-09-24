@@ -105,7 +105,7 @@
         "unit_of_measurement": "pakketten"
       },
       "awaiting_pickup": {
-        "name": "Wacht op ophalen",
+        "name": "Klaar voor afhalen",
         "unit_of_measurement": "pakketten"
       },
       "parcel": {
