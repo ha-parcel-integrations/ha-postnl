@@ -126,7 +126,7 @@
       "next_delivery": {
         "name": "Next delivery"
       },
-      "en_route_to_service_point": {
+      "en_route_to_pickup_point": {
         "name": "En route to PostNL Point",
         "unit_of_measurement": "parcels"
       },

@@ -126,7 +126,7 @@
       "next_delivery": {
         "name": "Volgende bezorging"
       },
-      "en_route_to_service_point": {
+      "en_route_to_pickup_point": {
         "name": "Onderweg naar PostNL Punt",
         "unit_of_measurement": "pakketten"
       },

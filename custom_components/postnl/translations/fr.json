@@ -126,7 +126,7 @@
       "next_delivery": {
         "name": "Prochaine livraison"
       },
-      "en_route_to_service_point": {
+      "en_route_to_pickup_point": {
         "name": "En route vers un point PostNL",
         "unit_of_measurement": "colis"
       },

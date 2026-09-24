@@ -32,7 +32,7 @@
       "next_delivery": {
         "default": "mdi:clock-fast"
       },
-      "en_route_to_service_point": {
+      "en_route_to_pickup_point": {
         "default": "mdi:truck-delivery"
       },
       "letters": {

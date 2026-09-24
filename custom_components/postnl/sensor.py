@@ -27,6 +27,22 @@ _LOGGER = logging.getLogger(__name__)
 PARALLEL_UPDATES = 0
 
 
+def _migrate_summary_unique_ids(registry: er.EntityRegistry, account_id: str) -> None:
+    """Preserve entity customisations while adopting the canonical pickup ID."""
+    old_unique_id = f"{account_id}_en_route_to_service_point"
+    new_unique_id = f"{account_id}_en_route_to_pickup_point"
+    old_entity_id = registry.async_get_entity_id("sensor", DOMAIN, old_unique_id)
+    if old_entity_id is None:
+        return
+    if registry.async_get_entity_id("sensor", DOMAIN, new_unique_id) is not None:
+        _LOGGER.warning(
+            "Both legacy and canonical pickup summary entities exist; "
+            "reconcile %s and %s manually", old_unique_id, new_unique_id
+        )
+        return
+    registry.async_update_entity(old_entity_id, new_unique_id=new_unique_id)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: PostNLConfigEntry,
@@ -47,11 +63,13 @@ async def async_setup_entry(
 
     # Remove stale per-parcel sensors that are no longer active.
     registry = er.async_get(hass)
+    _migrate_summary_unique_ids(registry, account_id)
     non_parcel_unique_ids = {
         f"{account_id}_incoming_parcels",
         f"{account_id}_awaiting_pickup",
         f"{account_id}_next_delivery",
-        f"{account_id}_en_route_to_service_point",
+        f"{account_id}_en_route_to_pickup_point",
+        f"{account_id}_en_route_to_service_point",  # collision: preserve for reconciliation
         f"{account_id}_outgoing_parcels",
         f"{account_id}_delivered_parcels",
         f"{account_id}_outgoing_delivered_parcels",
@@ -80,7 +98,7 @@ async def async_setup_entry(
         ),
         PostNLAwaitingPickupSensor(coordinator=coordinator, userinfo=userinfo),
         PostNLNextDeliverySensor(coordinator=coordinator, userinfo=userinfo),
-        PostNLEnRouteToServicePointSensor(coordinator=coordinator, userinfo=userinfo),
+        PostNLEnRouteToPickupPointSensor(coordinator=coordinator, userinfo=userinfo),
         PostNLOutgoingParcelsSensor(coordinator=coordinator, userinfo=userinfo),
         PostNLDeliveredParcelsSensor(coordinator=coordinator, userinfo=userinfo),
         PostNLOutgoingDeliveredParcelsSensor(coordinator=coordinator, userinfo=userinfo),
@@ -195,8 +213,7 @@ class PostNLAwaitingPickupSensor(CoordinatorEntity[PostNLCoordinator], SensorEnt
         return [
             parcel
             for parcel in _active_receiver(self.coordinator)
-            if parcel.get("pickup")
-            and parcel.get("status") == ParcelStatus.AT_PICKUP_POINT
+            if parcel.get("status") == ParcelStatus.AT_PICKUP_POINT
         ]
 
     @property
@@ -305,11 +322,11 @@ class PostNLNextDeliverySensor(CoordinatorEntity[PostNLCoordinator], SensorEntit
         }
 
 
-class PostNLEnRouteToServicePointSensor(CoordinatorEntity[PostNLCoordinator], SensorEntity):
+class PostNLEnRouteToPickupPointSensor(CoordinatorEntity[PostNLCoordinator], SensorEntity):
     """Sensor reporting active incoming parcels destined for a PostNL point."""
 
     _attr_has_entity_name = True
-    _attr_translation_key = "en_route_to_service_point"
+    _attr_translation_key = "en_route_to_pickup_point"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_attribution = ATTRIBUTION
     _unrecorded_attributes = frozenset({"parcels"})
@@ -322,21 +339,24 @@ class PostNLEnRouteToServicePointSensor(CoordinatorEntity[PostNLCoordinator], Se
         """Initialize the sensor."""
         super().__init__(coordinator)
         account_id: str = userinfo.get("account_id", "")
-        self._attr_unique_id = f"{account_id}_en_route_to_service_point"
+        self._attr_unique_id = f"{account_id}_en_route_to_pickup_point"
         self._attr_device_info = build_device_info(userinfo)
 
-    def _get_service_point_parcels(self) -> list[dict]:
-        return [p for p in _active_receiver(self.coordinator) if p.get("pickup")]
+    def _get_pickup_point_parcels(self) -> list[dict]:
+        return [
+            p for p in _active_receiver(self.coordinator)
+            if p.get("pickup") and p.get("status") != ParcelStatus.AT_PICKUP_POINT
+        ]
 
     @property
     def native_value(self) -> int:
         """Return the native value of the sensor."""
-        return len(self._get_service_point_parcels())
+        return len(self._get_pickup_point_parcels())
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the extra state attributes."""
-        return {"parcels": self._get_service_point_parcels()}
+        return {"parcels": self._get_pickup_point_parcels()}
 
 
 class PostNLOutgoingParcelsSensor(CoordinatorEntity[PostNLCoordinator], SensorEntity):
