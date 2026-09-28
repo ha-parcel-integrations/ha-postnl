@@ -1,7 +1,7 @@
 {
   "domain": "postnl",
   "name": "PostNL",
-  "codeowners": ["@arjenbos", "@peternijssen"],
+  "codeowners": ["@peter-mdf"],
   "config_flow": true,
   "documentation": "https://github.com/ha-parcel-integrations/ha-postnl",
   "integration_type": "hub",

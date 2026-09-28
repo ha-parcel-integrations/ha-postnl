@@ -264,10 +264,9 @@ polling** above).
 
 ## Fork / upstream relationship
 
-Fork of [`arjenbos/ha-postnl`](https://github.com/arjenbos/ha-postnl),
-maintained by [@peternijssen](https://github.com/peternijssen). HACS releases
-ship from this fork; fixes that also apply upstream are filed as separate PRs
-against `arjenbos/main`. `manifest.json` still lists `@arjenbos` as codeowner.
+Fork of [`arjenbos/ha-postnl`](https://github.com/arjenbos/ha-postnl). HACS
+releases ship from this fork; fixes that also apply upstream are filed as
+separate PRs against `arjenbos/main`.
 
 (The old `CLAUDE.md` pointed at a `CHANGES.md` for cross-repo coordination.
 No such file exists in this repo's history — if that coordination log lives

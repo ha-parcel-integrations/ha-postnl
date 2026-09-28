@@ -3,7 +3,7 @@ description: Report a bug in the PostNL integration
 title: "[Bug]: "
 labels: ["bug"]
 assignees:
-  - peternijssen
+  - peter-mdf
 body:
   - type: markdown
     attributes:

@@ -3,7 +3,7 @@ description: Suggest a new feature or enhancement for the PostNL integration
 title: "[Feature]: "
 labels: ["enhancement"]
 assignees:
-  - peternijssen
+  - peter-mdf
 body:
   - type: textarea
     id: feature

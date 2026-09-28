@@ -295,12 +295,6 @@ This integration may rely on public, unofficial, or undocumented carrier interfa
 
 ## Contributing
 
-This fork is maintained by [@peternijssen](https://github.com/peternijssen).
-The original integration is by
-[@arjenbos](https://github.com/arjenbos) — fixes that apply to both
-forks are filed as PRs against the upstream
-[`arjenbos/ha-postnl`](https://github.com/arjenbos/ha-postnl).
-
 Pull requests and issues are welcome. Please open an issue before submitting a large change.
 
 ## License

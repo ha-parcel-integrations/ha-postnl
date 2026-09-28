@@ -3,7 +3,7 @@ description: The integration logged a warning asking you to report an unrecognis
 title: "[status] "
 labels: ["unrecognised-status"]
 assignees:
-  - peternijssen
+  - peter-mdf
 body:
   - type: markdown
     attributes:
