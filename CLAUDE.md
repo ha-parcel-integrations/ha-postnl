@@ -10,7 +10,7 @@ Three places hold the knowledge, and they do not overlap:
 | What | Where |
 |---|---|
 | How this integration is built, and why it is built that way | [`ARCHITECTURE.md`](ARCHITECTURE.md) — read it before touching `auth.py`, one of the three API clients, the image entity, or the status derivation. It also carries the fork/upstream relationship |
-| Endpoint mechanics, payload shapes, status vocabularies | `carrier-research/postnl/api/` (private repo) — the GraphQL shipment list, Track & Trace, MyMail (letters + image bytes) and login endpoints, the Dutch status strings and the `observationCode` vocabulary. **Never** duplicated into this repo |
+| Endpoint mechanics, payload shapes, status vocabularies | `carrier-research/postnl/api/` (private repo). **Never** duplicated into this repo |
 | Suite-wide conventions | [`.github/CONVENTIONS.md`](https://github.com/ha-parcel-integrations/.github/blob/main/CONVENTIONS.md) |
 
 This file is the short list of things an agent must not get wrong.
