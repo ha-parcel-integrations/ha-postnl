@@ -3,6 +3,7 @@
 [![Release](https://img.shields.io/github/v/release/ha-parcel-integrations/ha-postnl.svg)](https://github.com/ha-parcel-integrations/ha-postnl/releases)
 [![Downloads](https://img.shields.io/github/downloads/ha-parcel-integrations/ha-postnl/total.svg)](https://github.com/ha-parcel-integrations/ha-postnl/releases)
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > 💬 Questions or feedback? Join the discussion on the [Home Assistant community](https://community.home-assistant.io/t/packages-postnl-dhl-nl-dpd-and-gls-parcel-integration/112433/).
 
@@ -291,7 +292,7 @@ This is an independent, community-built project. It is not affiliated with, endo
 
 All third-party trademarks, trade names, product names, logos, and other brand assets are the property of their respective owners. References to them are solely to identify the relevant carrier or service and do not imply affiliation, sponsorship, or endorsement. Nothing in this project grants or implies any licence or right to use third-party brand assets.
 
-This integration may rely on public, unofficial, or undocumented carrier interfaces, accessed with your own account or API key where required. These may change or be withdrawn without notice and may be subject to PostNL's terms. Data is sent only to PostNL's own services or those of its group; this project operates no servers of its own. You are responsible for ensuring that your use complies with applicable law and those terms. Use is at your own risk; see the [licence](LICENSE.md) for warranty limitations.
+This integration may rely on public, unofficial, or undocumented carrier interfaces, accessed with your own account or API key where required. These may change or be withdrawn without notice and may be subject to PostNL's terms. Data is sent only to PostNL's own services or those of its group; this project operates no servers of its own. You are responsible for ensuring that your use complies with applicable law and those terms. Use is at your own risk; see the [licence](LICENSE) for warranty limitations.
 
 ## Contributing
 
