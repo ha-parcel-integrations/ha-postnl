@@ -145,6 +145,7 @@ _OBSERVATION_META_CODES: frozenset[str] = frozenset({
     "J09",  # bezorgmoment bijgewerkt, geen mislukte poging (locker parcel does not move)
     "K33",  # "leeg" placeholder
     "K50",  # RCS melding (notification)
+    "P21",  # zending kan niet in brievenbus (delivery method changes, parcel does not move)
 })
 
 # New-issue link surfaced in the unknown-status warnings so users can paste a
