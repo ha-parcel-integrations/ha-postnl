@@ -8,6 +8,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 import requests
+from gql.transport.exceptions import TransportError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
@@ -323,8 +324,8 @@ class PostNLCoordinator(DataUpdateCoordinator):
             raise
         except HomeAssistantError as exception:
             raise UpdateFailed("Authentication failed") from exception
-        except requests.exceptions.RequestException as exception:
-            raise UpdateFailed("Unable to update PostNL data") from exception
+        except (requests.exceptions.RequestException, TransportError) as exception:
+            raise UpdateFailed(f"Unable to update PostNL data: {exception}") from exception
 
     def _fire_change_events(self, parcels: list[dict]) -> None:
         """Fire events for newly-registered parcels and parcel transitions.

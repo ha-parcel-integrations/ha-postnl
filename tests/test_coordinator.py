@@ -2,6 +2,8 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from custom_components.postnl.const import (
     CAPABILITIES,
     CONF_INCLUDE_HISTORY,
@@ -529,6 +531,27 @@ async def test_polling_recomputes_interval_and_never_stops(hass):
 
     assert coordinator.current_tier_minutes == MID_INTERVAL_MINUTES
     assert coordinator.update_interval is not None
+
+
+async def test_graphql_query_error_is_a_retryable_update_failure(hass):
+    """PostNL reports its own backend timeouts as a GraphQL error, not an HTTP one."""
+    from gql.transport.exceptions import TransportQueryError
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
+    coordinator = PostNLCoordinator(hass, _polling_entry(hass, {}))
+    error = TransportQueryError(
+        "{'message': 'The request was canceled due to the configured "
+        "HttpClient.Timeout of 30 seconds elapsing.'}"
+    )
+
+    with (
+        patch(
+            "custom_components.postnl.coordinator.PostNLGraphql.shipments",
+            new=MagicMock(side_effect=error),
+        ),
+        pytest.raises(UpdateFailed),
+    ):
+        await coordinator._async_update_data()
 
 
 async def test_a_legacy_refresh_interval_option_is_ignored(hass):
