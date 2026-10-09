@@ -80,7 +80,9 @@ whether `history` is *exposed*). Ordered substring patterns against
 `statusPhase.message` are the fallback, only when derivation returns `None`. Raw
 string always on `raw_status`, never `status`. PostNL's free text drifts wording
 — five closed "unrecognised status" issues, one root cause — so **don't invert
-this preference.**
+this preference.** `delivered` is GraphQL's flag **or** a mapped `delivered`
+status — GraphQL can lag behind T&T (#33); don't make GraphQL the sole source
+again.
 
 **Milestone vs meta carry-forward — do not undo.** Only milestone codes carry a
 movement status; meta codes (ETA recalcs, enrichment) inherit the previous

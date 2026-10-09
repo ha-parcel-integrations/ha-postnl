@@ -303,6 +303,41 @@ def test_normalize_parcel_delivered_window_cleared():
     assert parcel["planned_to"] is None
 
 
+def test_normalize_parcel_delivered_from_track_and_trace_when_graphql_lags():
+    """GraphQL says not delivered, T&T has I01 (issue #33)."""
+    parcel = normalize_parcel({
+        "barcode": "X",
+        "delivered": False,
+        "delivery_date": None,
+        "status_message": "Pakket is bezorgd",
+        "planned_from": "2026-10-02T13:00:00+02:00",
+        "planned_to": "2026-10-02T17:00:00+02:00",
+        "observations": [
+            {"observationDate": "2026-10-02T08:00:00+02:00", "observationCode": "J05"},
+            {"observationDate": "2026-10-02T15:06:32+02:00", "observationCode": "I01"},
+            {"observationDate": "2026-10-02T15:07:00+02:00", "observationCode": "A25"},
+        ],
+    })
+    assert parcel["status"] == ParcelStatus.DELIVERED
+    assert parcel["delivered"] is True
+    assert parcel["delivered_at"] == "2026-10-02T15:06:32+02:00"
+    assert parcel["planned_from"] is None
+    assert parcel["raw"]["delivered"] is False
+
+
+def test_normalize_parcel_not_delivered_while_in_transit():
+    parcel = normalize_parcel({
+        "barcode": "X",
+        "delivered": False,
+        "status_message": "Pakket is onderweg",
+        "observations": [
+            {"observationDate": "2026-10-02T08:00:00+02:00", "observationCode": "J05"},
+        ],
+    })
+    assert parcel["delivered"] is False
+    assert parcel["delivered_at"] is None
+
+
 def test_normalize_parcel_passes_receiver_through():
     parcel = normalize_parcel({
         "barcode": "3SXYZ",

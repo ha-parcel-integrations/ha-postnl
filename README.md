@@ -194,7 +194,7 @@ users.
 | `in_transit` | Picked up; somewhere in PostNL's network | `statusPhase.message` containing "onderweg", "ontvangen" or "gesorteerd" |
 | `out_for_delivery` | On the delivery vehicle today | `statusPhase.message` containing "wordt vandaag bezorgd", "onderweg naar het bezorgadres" or "onderweg naar de bezorger" |
 | `at_pickup_point` | Arrived at the chosen PostNL Point, ready to be collected | `statusPhase.message` containing "ligt klaar bij postnl punt" or similar |
-| `delivered` | Handed over (mailbox, recipient, neighbour, picked up) | `shipment.delivered == true` (authoritative); fallback `statusPhase.message` containing "bezorgd" |
+| `delivered` | Handed over (mailbox, recipient, neighbour, picked up) | `shipment.delivered == true`, or a delivered Track & Trace event when PostNL hasn't flagged the shipment yet; fallback `statusPhase.message` containing "bezorgd" |
 | `returning` | Failed delivery, on the way back to the sender | `statusPhase.message` containing "retour" or "teruggestuurd" |
 | `unknown` | Raw description we have not mapped yet | anything else — logged once at warning level with a ready-to-paste issue link so it can be added to the map |
 

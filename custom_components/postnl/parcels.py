@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 # PostNL's status comes from three signals, tried in this order:
-#   - shipment.delivered (bool, GraphQL) — terminal indicator, always wins
+#   - shipment.delivered (bool, GraphQL) — terminal indicator, always wins (can lag T&T)
 #   - colli.analyticsInfo.allObservations[].observationCode — stable vocabulary
 #     (see _OBSERVATION_CODE_MAP below); preferred whenever present
 #   - colli.statusPhase.message (Track & Trace) — Dutch human-readable string;
@@ -316,6 +316,15 @@ def derive_observation_status(observations: list[dict] | None) -> ParcelStatus |
     return last_status
 
 
+def _observed_delivery_time(observations: list[dict] | None) -> str | None:
+    """Return the timestamp of the newest delivered milestone, if any."""
+    delivered_at = None
+    for timestamp, code, _ in _order_observations(observations):
+        if _OBSERVATION_CODE_MAP.get(code) == ParcelStatus.DELIVERED:
+            delivered_at = timestamp
+    return delivered_at
+
+
 def _extract_observations(colli: dict) -> list[dict]:
     """Return the status-event list from a colli object, oldest-first preferred.
 
@@ -408,7 +417,15 @@ def normalize_parcel(parcel: dict, *, history: list[dict] | None = None) -> dict
     default off → ``None``). It stays top-level so it survives the
     aggregator's ``strip_raw()`` and flows through unchanged.
     """
-    delivered = bool(parcel.get("delivered"))
+    status = map_parcel_status(parcel)
+    # GraphQL can keep ``delivered: false`` and no timestamp while Track &
+    # Trace already shows the delivery (#33) — trust whichever saw it first.
+    delivered = bool(parcel.get("delivered")) or status == ParcelStatus.DELIVERED
+    delivered_at = None
+    if delivered:
+        delivered_at = parcel.get("delivery_date") or _observed_delivery_time(
+            parcel.get("observations")
+        )
     weight_kg, canonical_dimensions = _convert_native_dimensions(
         parcel.get("dimensions")
     )
@@ -422,10 +439,10 @@ def normalize_parcel(parcel: dict, *, history: list[dict] | None = None) -> dict
         # shop (#13). It stays as a last-resort fallback only.
         "sender": parcel.get("name") or parcel.get("source_display_name"),
         "receiver": parcel.get("receiver"),
-        "status": map_parcel_status(parcel),
+        "status": status,
         "raw_status": parcel.get("status_message"),
         "delivered": delivered,
-        "delivered_at": parcel.get("delivery_date") if delivered else None,
+        "delivered_at": delivered_at,
         "planned_from": None if delivered else parcel.get("planned_from"),
         "planned_to": None if delivered else parcel.get("planned_to"),
         "pickup": parcel.get("delivery_address_type") == "ServicePoint",

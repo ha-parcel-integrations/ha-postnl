@@ -178,6 +178,14 @@ That derivation runs on **every** active-path poll, independently of the opt-in
 *exposed* on `history`; the underlying observations are always fetched and
 always consulted for status.
 
+**`delivered` follows `status`, not only GraphQL.** GraphQL's `delivered` flag
+can lag behind Track & Trace (`false`, no `deliveredTimeStamp`, while T&T
+already has `I01`). `normalize_parcel` therefore treats a parcel as delivered
+when either GraphQL says so or the mapped status is `delivered`, and fills
+`delivered_at` from the newest delivered milestone when GraphQL has no
+timestamp. Without that, the parcel reads `status: delivered` but stays in the
+incoming list forever. `raw.delivered` keeps GraphQL's own value.
+
 Only when the derivation returns `None` — no observations, or none recognised —
 does it fall back to **ordered substring patterns, more specific first**,
 against `statusPhase.message`. The raw string lives on `raw_status`, never
