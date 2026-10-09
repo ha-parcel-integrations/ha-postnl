@@ -1,20 +1,18 @@
 # Notify when PostNL's MyMail service announces a new letter, with the
-# scanned image attached.
+# scanned image attached when there is one.
 #
-# Triggers on the per-letter image entity *appearing* (old_state is
-# none): Home Assistant's image platform spawns a new
-# image.postnl_..._letter_<title> entity for every new letter, and the
-# state goes from missing to a timestamp the moment it lands.
+# Triggers on the postnl_letter_announced event, then waits for the
+# per-letter image entity whose `id` attribute matches the letter. The
+# event fires just before that entity is added, and PostNL's raw
+# image_url needs a bearer token the companion app does not have, so
+# the scan goes through Home Assistant's image proxy
+# (/api/image_proxy/<entity_id>) instead.
 #
-# Why not the postnl_letter_announced event? The event fires before
-# the image entity exists, and PostNL's raw image_url requires a
-# bearer token that the mobile companion app does not have. Triggering
-# on the entity means we already know its id, and we can use Home
-# Assistant's image proxy (/api/image_proxy/<entity_id>) which the
-# companion app authenticates against natively.
-#
-# For a plain-text "you got a letter" notification without the image,
-# trigger on the event instead — see the events reference in the README.
+# Matching on the `id` attribute rather than the entity_id keeps this
+# working in every language: the entity_id follows the translated name
+# (`..._letter_...` in English, `..._brief_...` in Dutch). Letters
+# without a scan never get an image entity; after the timeout the
+# notification goes out without an image.
 
 alias: "PostNL: new letter announced"
 description: Notify when MyMail announces a new letter, with the scan attached.
@@ -23,25 +21,36 @@ max: 5
 
 triggers:
   - trigger: event
-    event_type: state_changed
+    event_type: postnl_letter_announced
 
-conditions:
-  - condition: template
-    value_template: >-
-      {{ trigger.event.data.entity_id.startswith('image.postnl')
-         and '_letter_' in trigger.event.data.entity_id
-         and trigger.event.data.old_state is none
-         and trigger.event.data.new_state is not none }}
+variables:
+  letter_id: "{{ trigger.event.data.id }}"
 
 actions:
+  - wait_template: >-
+      {{ states.image
+         | selectattr('attributes.id', 'defined')
+         | selectattr('attributes.id', 'eq', letter_id)
+         | list | count > 0 }}
+    timeout: "00:00:30"
+    continue_on_timeout: true
+
+  - variables:
+      image_entity: >-
+        {{ states.image
+           | selectattr('attributes.id', 'defined')
+           | selectattr('attributes.id', 'eq', letter_id)
+           | map(attribute='entity_id') | first | default('') }}
+
   - action: notify.mobile_app
     data:
       title: "Letter announced"
-      message: "PostNL has announced a new letter."
-      data:
-        # iOS
-        attachment:
-          url: "/api/image_proxy/{{ trigger.event.data.entity_id }}"
-          content-type: jpeg
-        # Android
-        image: "/api/image_proxy/{{ trigger.event.data.entity_id }}"
+      message: "{{ trigger.event.data.title }} ({{ trigger.event.data.date }})"
+      data: >-
+        {% if image_entity %}
+        {{ {'attachment': {'url': '/api/image_proxy/' ~ image_entity,
+                           'content-type': 'jpeg'},
+            'image': '/api/image_proxy/' ~ image_entity} }}
+        {% else %}
+        {{ {} }}
+        {% endif %}

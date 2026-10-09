@@ -1,6 +1,8 @@
 # Dynamic gallery of every announced MyMail letter. Each letter has
-# its own `image.postnl_..._letter_<title>` entity, created and removed
-# by the integration as letters come and go. This snippet uses
+# its own `image.postnl_..._letter_<title>` entity (`_brief_` in Dutch),
+# created and removed by the integration as letters come and go. This
+# snippet filters on integration and domain, so it works in any
+# language, and uses
 # `custom:auto-entities` (HACS) to discover them automatically, so the
 # grid keeps itself in sync without you having to list entities by hand.
 #
