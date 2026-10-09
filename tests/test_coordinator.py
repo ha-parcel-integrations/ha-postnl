@@ -1453,6 +1453,12 @@ def test_map_observation_status_live_catalogue_2026_09_08():
     assert map_observation_status("K01") == ParcelStatus.IN_TRANSIT
 
 
+def test_map_observation_status_busy_delay_2026_10_09():
+    """G03 / V06 reported as unknown (issue #32): delivery delayed by busyness."""
+    for code in ("G03", "V06"):
+        assert map_observation_status(code) == ParcelStatus.IN_TRANSIT, code
+
+
 def test_map_observation_status_meta_codes_are_silent_null(caplog):
     """Notification/admin codes are known → no movement status, no warning."""
     for code in (

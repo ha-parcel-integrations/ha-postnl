@@ -101,10 +101,12 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     "I07": ParcelStatus.IN_TRANSIT,       # retourzending gesorteerd, wordt overgedragen aan afzender
     # --- Real delivery delay / failed attempt: a genuine step back to transit ---
     "G01": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt — lukt vandaag niet
+    "G03": ParcelStatus.IN_TRANSIT,       # door drukte duurt de bezorging wat langer (delay)
     "G05": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt (delay)
     "K01": ParcelStatus.IN_TRANSIT,       # sorry, bezorgmoment is bijgewerkt (delay, variant of G01/G05/T04)
     "K70": ParcelStatus.IN_TRANSIT,       # bezorging niet gelukt, pakket gaat naar PostNL-punt
     "T04": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt (delay)
+    "V06": ParcelStatus.IN_TRANSIT,       # door drukte duurt de bezorging wat langer (variant of G03)
     # --- Out for delivery ---
     "J05": ParcelStatus.OUT_FOR_DELIVERY, # bezorger is onderweg
     # --- At a pickup point ---
