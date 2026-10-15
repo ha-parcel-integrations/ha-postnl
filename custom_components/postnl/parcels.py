@@ -81,6 +81,7 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     "F01": ParcelStatus.IN_TRANSIT,       # pakket wordt opgehaald (collected from the sender)
     "J01": ParcelStatus.IN_TRANSIT,       # gesorteerd
     "R01": ParcelStatus.IN_TRANSIT,       # zending is gesorteerd (variant of J01)
+    "J10": ParcelStatus.IN_TRANSIT,       # zending is gesorteerd (variant of J01/R01)
     "J04": ParcelStatus.IN_TRANSIT,       # voorgemeld en gescand op rit
     "J21": ParcelStatus.IN_TRANSIT,       # overgedragen aan afhaallocatie (handover, not yet ready)
     "J31": ParcelStatus.IN_TRANSIT,       # ingenomen aan de sorteergoot
@@ -137,6 +138,7 @@ _OBSERVATION_META_CODES: frozenset[str] = frozenset({
     "A19",  # ETA gewijzigd
     "A24",  # herinnering 24 uur in pakketautomaat (locker variant of A25)
     "A25",  # reminderservice notificaties
+    "A44",  # e-mail met link naar track&trace verzonden (notification)
     "A65",  # zending herpland (planning change)
     "A94",  # zelf bezorging gewijzigd
     "A95",  # bezorging wijzigen niet mogelijk

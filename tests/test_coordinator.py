@@ -1494,10 +1494,22 @@ def test_map_observation_status_busy_delay_2026_10_09():
         assert map_observation_status(code) == ParcelStatus.IN_TRANSIT, code
 
 
+def test_map_observation_status_sorted_and_tt_mail_2026_10_15(caplog):
+    """J10 / A44 reported as unknown (issue #36)."""
+    # "Zending is gesorteerd" — variant of J01/R01.
+    assert map_observation_status("J10") == ParcelStatus.IN_TRANSIT
+    assert "J10" not in _OBSERVATION_META_CODES
+    # Track & trace mail sent — a notification, the parcel does not move.
+    assert map_observation_status("A44", "E-mail met link naar track&trace is verzonden.") is None
+    assert "A44" in _OBSERVATION_META_CODES
+    assert "issues/new" not in caplog.text
+
+
 def test_map_observation_status_meta_codes_are_silent_null(caplog):
     """Notification/admin codes are known → no movement status, no warning."""
     for code in (
-        "A04", "A18", "A19", "A20", "A24", "A25", "A65", "A94", "A95", "A96", "A98",
+        "A04", "A18", "A19", "A20", "A24", "A25", "A44", "A65", "A94", "A95", "A96",
+        "A98",
         "B03", "J09", "K33", "K50",
     ):
         assert map_observation_status(code, "some text") is None, code
