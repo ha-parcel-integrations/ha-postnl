@@ -84,6 +84,16 @@ this preference.** `delivered` is GraphQL's flag **or** a mapped `delivered`
 status — GraphQL can lag behind T&T (#33); don't make GraphQL the sole source
 again.
 
+**`planned_from` carries PostNL's narrow ETA when there is one, and
+`planned_to` never changes** (`_delivery_window_start`, #28). The estimate rides
+on the canonical field because every surface — calendar, sort order, both
+next-delivery sensors, Assist, the hot-tier lookahead — already reads it; a
+separate key would have been a suite-wide contract change for a value only
+PostNL can fill. It is adopted **only** when it parses and sits inside
+`[planned_from, planned_to]`, and the untouched window start stays on
+`raw.planned_from`. **Don't** split this into its own field, and don't "fix"
+`delivery_time_changed` firing on an ETA-only shift — that is intended.
+
 **Milestone vs meta carry-forward — do not undo.** Only milestone codes carry a
 movement status; meta codes (ETA recalcs, enrichment) inherit the previous
 milestone's stage so the timeline never bounces backward. Baseline before the

@@ -303,6 +303,64 @@ def test_normalize_parcel_delivered_window_cleared():
     assert parcel["planned_to"] is None
 
 
+def test_normalize_parcel_window_start_sharpened_to_expected_eta():
+    """PostNL's narrow expectedDeliveryTime replaces the window start (#28)."""
+    parcel = normalize_parcel({
+        "barcode": "X",
+        "status_message": "Bezorger is onderweg",
+        "planned_from": "2026-09-29T19:45:00+02:00",
+        "planned_to": "2026-09-29T21:45:00+02:00",
+        "expected_datetime": "2026-09-29T20:20:00+02:00",
+    })
+    assert parcel["planned_from"] == "2026-09-29T20:20:00+02:00"
+    assert parcel["planned_to"] == "2026-09-29T21:45:00+02:00"
+    # The untouched window start stays available for anyone who wants it.
+    assert parcel["raw"]["planned_from"] == "2026-09-29T19:45:00+02:00"
+
+
+@pytest.mark.parametrize("expected", [
+    None,
+    "",
+    "not-a-timestamp",
+    "2026-09-29T19:30:00+02:00",  # before the window
+    "2026-09-29T22:00:00+02:00",  # after the window
+])
+def test_normalize_parcel_window_start_keeps_postnl_value_for_unusable_eta(expected):
+    """An ETA we cannot place inside the window leaves the window start alone."""
+    parcel = normalize_parcel({
+        "barcode": "X",
+        "status_message": "Bezorger is onderweg",
+        "planned_from": "2026-09-29T19:45:00+02:00",
+        "planned_to": "2026-09-29T21:45:00+02:00",
+        "expected_datetime": expected,
+    })
+    assert parcel["planned_from"] == "2026-09-29T19:45:00+02:00"
+
+
+def test_normalize_parcel_window_start_needs_both_window_bounds():
+    """Without a window to bound it, the ETA is not trusted as the start."""
+    parcel = normalize_parcel({
+        "barcode": "X",
+        "status_message": "Bezorger is onderweg",
+        "planned_from": "2026-09-29T19:45:00+02:00",
+        "expected_datetime": "2026-09-29T20:20:00+02:00",
+    })
+    assert parcel["planned_from"] == "2026-09-29T19:45:00+02:00"
+
+
+def test_normalize_parcel_delivered_clears_window_despite_expected_eta():
+    """A delivered parcel keeps an empty window even when an ETA is present."""
+    parcel = normalize_parcel({
+        "barcode": "X",
+        "delivered": True,
+        "status_message": "Pakket is bezorgd",
+        "planned_from": "2026-09-29T19:45:00+02:00",
+        "planned_to": "2026-09-29T21:45:00+02:00",
+        "expected_datetime": "2026-09-29T20:20:00+02:00",
+    })
+    assert parcel["planned_from"] is None
+
+
 def test_normalize_parcel_delivered_from_track_and_trace_when_graphql_lags():
     """GraphQL says not delivered, T&T has I01 (issue #33)."""
     parcel = normalize_parcel({
@@ -815,8 +873,11 @@ async def test_transform_shipment_fetches_planned_window_from_route_information(
     }
     parcel = await coordinator.transform_shipment(shipment)
     assert parcel["raw_status"] == "OP_WEG_VAN_AFZENDER"
-    assert parcel["planned_from"] == "2026-06-17T14:00:00Z"
+    # The route's own ETA sharpens the window start (#28); the window as PostNL
+    # sent it stays on ``raw``.
+    assert parcel["planned_from"] == "2026-06-17T15:15:00Z"
     assert parcel["planned_to"] == "2026-06-17T16:00:00Z"
+    assert parcel["raw"]["planned_from"] == "2026-06-17T14:00:00Z"
     assert parcel["raw"]["expected_datetime"] == "2026-06-17T15:15:00Z"
 
 

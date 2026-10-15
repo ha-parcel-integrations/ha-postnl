@@ -406,6 +406,30 @@ def _convert_native_dimensions(
     }
 
 
+def _delivery_window_start(parcel: dict) -> str | None:
+    """Return the window start, sharpened to PostNL's own ETA when it has one.
+
+    PostNL publishes a two-hour window *and*, once the parcel is on a route, a
+    much narrower ``expectedDeliveryTime`` inside it (#28). The window start is
+    what everything downstream reads — the calendar, the sort order, both
+    next-delivery sensors — so the ETA replaces it rather than living in a
+    field nobody consumes. The untouched window start stays on ``raw``.
+
+    The ETA is only trusted inside the window it belongs to: a value outside
+    it (or an unparseable one) is a payload we have not seen and keeps the
+    window start as PostNL sent it.
+    """
+    planned_from = parcel.get("planned_from")
+    expected = _parse_iso(parcel.get("expected_datetime"))
+    if expected is None:
+        return planned_from
+    start = _parse_iso(planned_from)
+    end = _parse_iso(parcel.get("planned_to"))
+    if start is None or end is None or not start <= expected <= end:
+        return planned_from
+    return parcel["expected_datetime"]
+
+
 def normalize_parcel(parcel: dict, *, history: list[dict] | None = None) -> dict:
     """Wrap a transformed PostNL parcel in the canonical carrier-agnostic shape.
 
@@ -414,6 +438,9 @@ def normalize_parcel(parcel: dict, *, history: list[dict] | None = None) -> dict
     ``status_message``, ``delivery_address_type``, ``planned_date``,
     ``expected_datetime`` and the native ``dimensions`` dict in g + mm)
     is preserved under ``raw`` for power users.
+
+    ``planned_from`` carries PostNL's narrow ``expectedDeliveryTime`` when
+    there is one — see :func:`_delivery_window_start`.
 
     ``history`` is the optional per-parcel status timeline (opt-in option,
     default off → ``None``). It stays top-level so it survives the
@@ -445,7 +472,7 @@ def normalize_parcel(parcel: dict, *, history: list[dict] | None = None) -> dict
         "raw_status": parcel.get("status_message"),
         "delivered": delivered,
         "delivered_at": delivered_at,
-        "planned_from": None if delivered else parcel.get("planned_from"),
+        "planned_from": None if delivered else _delivery_window_start(parcel),
         "planned_to": None if delivered else parcel.get("planned_to"),
         "pickup": parcel.get("delivery_address_type") == "ServicePoint",
         "pickup_point": None,

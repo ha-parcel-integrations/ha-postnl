@@ -141,7 +141,9 @@ recomputes it every refresh via `_next_update_interval`:
   already inside it, which is how an anchor poll computes its own follow-up.
 - **Hot tier** (`HOT_INTERVAL_MINUTES` 15) when at least one active receiver
   parcel is `out_for_delivery` within `HOT_LOOKAHEAD_HOURS` (1) of its
-  `planned_from`, or has no `planned_from` at all.
+  `planned_from`, or has no `planned_from` at all. Note that `planned_from`
+  may be the sharpened ETA rather than the window start (see below), so the
+  hot tier follows PostNL's own expectation.
 - **Mid tier** (`MID_INTERVAL_MINUTES` 45) for anything else still in flight.
 - **It never fully stops.** This is the account-based model: one account call
   returns the full receiver, sender *and* letters state, so the mid-tier poll
@@ -209,6 +211,38 @@ codes stay `null` and do **not** carry forward.
 
 **Do not undo this**, and do not assign a fixed status to ETA codes — that is
 wrong by construction.
+
+## The delivery window and PostNL's own ETA
+
+Track & Trace gives up to three timestamps for the same delivery:
+`plannedDeliveryTimeWindow.startDateTime`/`.endDateTime` (the two-hour window
+PostNL communicates) and, once the parcel is on a route,
+`routeInformation.expectedDeliveryTime` — a far narrower estimate *inside* that
+window.
+
+`_delivery_window_start` (`parcels.py`) puts that estimate on **`planned_from`**
+rather than in a field of its own. Deliberately: `planned_from` is what every
+consumer already reads — the calendar event start, the sort order, the
+**Next delivery** sensor here and in the aggregator, Assist, and the hot-tier
+poll lookahead. A separate canonical key would mean a suite-wide contract
+change plus an aggregator change for a value only this carrier can fill, while
+every existing surface kept showing the vaguer number.
+
+Two constraints keep it honest:
+
+- `planned_to` is **never** touched, so the window keeps a real span and the
+  calendar never degenerates into a zero-length event.
+- The estimate is only adopted when it parses **and** falls within
+  `[planned_from, planned_to]`. Anything outside that is a payload shape we
+  have not seen, and PostNL's own window start is kept.
+
+Nothing is lost: `raw` is the untransformed intermediate dict, so the original
+window start remains as `raw.planned_from` alongside `raw.expected_datetime`.
+
+A consequence worth knowing: `postnl_parcel_delivery_time_changed` now also
+fires when PostNL only shifts its estimate within an unchanged window. That is
+the event doing its job — at the 15-minute hot cadence it is at most four
+observations an hour, and only while the parcel is actually out for delivery.
 
 ## Resilience and caching
 
