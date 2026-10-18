@@ -25,6 +25,7 @@ _CAPTURE_CLIENT_ID = "dkyxkt9x888ye422mawmf769yfm9y44j"
 _REDIRECT_URI = "https://www.postnl.nl/"
 _SCOPE = "openid poa-profiles-api offline_access"
 _FLOW_VERSION = "20250910094830574377"
+# suite: allow browser user-agent (the login flow is the website's own)
 _USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
