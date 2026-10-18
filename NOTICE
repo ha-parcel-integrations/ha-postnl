@@ -1,0 +1,20 @@
+ha-postnl
+
+This project contains two sets of code under different licenses.
+
+Original code, Copyright (c) 2024-2026 ha-postnl contributors, is licensed
+under the MIT License (see LICENSE).
+
+The files below are derived from https://github.com/arjenbos/ha-postnl,
+Copyright (c) 2023 Arjen Bos, which is licensed under the Apache License,
+Version 2.0 (see LICENSE-APACHE). They have been modified and remain under
+that license; each carries an SPDX header saying so.
+
+  custom_components/postnl/__init__.py
+  custom_components/postnl/auth.py
+  custom_components/postnl/config_flow.py
+  custom_components/postnl/coordinator.py
+  custom_components/postnl/graphql.py
+  custom_components/postnl/jouw_api.py
+  custom_components/postnl/login_api.py
+  custom_components/postnl/sensor.py

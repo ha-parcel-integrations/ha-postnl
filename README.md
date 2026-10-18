@@ -3,7 +3,7 @@
 [![Release](https://img.shields.io/github/v/release/ha-parcel-integrations/ha-postnl.svg)](https://github.com/ha-parcel-integrations/ha-postnl/releases)
 [![Downloads](https://img.shields.io/github/downloads/ha-parcel-integrations/ha-postnl/total.svg)](https://github.com/ha-parcel-integrations/ha-postnl/releases)
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-MIT%20%2B%20Apache%202.0-yellow.svg)](NOTICE)
 
 > 💬 Questions or feedback? Join the discussion on the [Home Assistant community](https://community.home-assistant.io/t/packages-postnl-dhl-nl-dpd-and-gls-parcel-integration/112433/).
 
@@ -300,4 +300,4 @@ Pull requests and issues are welcome. Please open an issue before submitting a l
 
 ## License
 
-MIT
+Original code is [MIT](LICENSE). Files derived from [@arjenbos/ha-postnl](https://github.com/arjenbos/ha-postnl) remain under the [Apache License 2.0](LICENSE-APACHE); [NOTICE](NOTICE) lists them.

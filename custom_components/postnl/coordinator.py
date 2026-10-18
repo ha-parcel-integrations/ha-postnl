@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# Derived from https://github.com/arjenbos/ha-postnl, Copyright (c) 2023 Arjen Bos; modified.
 """Data update coordinator for the postnl integration."""
 
 from __future__ import annotations
