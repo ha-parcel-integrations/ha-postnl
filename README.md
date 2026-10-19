@@ -2,7 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/ha-parcel-integrations/ha-postnl.svg)](https://github.com/ha-parcel-integrations/ha-postnl/releases)
 [![Downloads](https://img.shields.io/github/downloads/ha-parcel-integrations/ha-postnl/total.svg)](https://github.com/ha-parcel-integrations/ha-postnl/releases)
-[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![HACS](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 [![License](https://img.shields.io/badge/License-MIT%20%2B%20Apache%202.0-yellow.svg)](NOTICE)
 
 > 📦 Part of [**ha-parcel-integrations**](https://ha-parcel-integrations.github.io/), a family of package-tracking integrations for Home Assistant that all publish the same parcel format, statuses and events, so they plug into cross-carrier automations and the optional [Parcel Aggregator](https://github.com/ha-parcel-integrations/ha-parcel-aggregator). Browse the other carriers on the website.
@@ -53,10 +53,9 @@ Based upon the original work by [@arjenbos](https://github.com/arjenbos/ha-postn
 
 ### HACS (recommended)
 
-1. Open HACS → **Integrations** → ⋮ → **Custom repositories**
-2. Add this repository URL and select category **Integration**
-3. Search for **PostNL** and install it
-4. Restart Home Assistant
+1. Open HACS and search for **PostNL**
+2. Install it
+3. Restart Home Assistant
 
 ### Manual
 
