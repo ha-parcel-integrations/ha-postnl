@@ -1566,6 +1566,15 @@ def test_map_observation_status_sorted_and_tt_mail_2026_10_15(caplog):
     assert "issues/new" not in caplog.text
 
 
+def test_map_observation_status_damaged_returns_to_sender_2026_10_19(caplog):
+    """H04 reported as unknown (issue #38)."""
+    assert (
+        map_observation_status("H04", "Pakket is beschadigd, gaat retour afzender")
+        == ParcelStatus.RETURNING
+    )
+    assert "issues/new" not in caplog.text
+
+
 def test_map_observation_status_meta_codes_are_silent_null(caplog):
     """Notification/admin codes are known → no movement status, no warning."""
     for code in (

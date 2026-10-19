@@ -108,6 +108,8 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     "K70": ParcelStatus.IN_TRANSIT,       # bezorging niet gelukt, pakket gaat naar PostNL-punt
     "T04": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt (delay)
     "V06": ParcelStatus.IN_TRANSIT,       # door drukte duurt de bezorging wat langer (variant of G03)
+    # --- Returning to the sender ---
+    "H04": ParcelStatus.RETURNING,        # pakket is beschadigd, gaat retour afzender
     # --- Out for delivery ---
     "J05": ParcelStatus.OUT_FOR_DELIVERY, # bezorger is onderweg
     # --- At a pickup point ---
