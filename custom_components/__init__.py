@@ -1,2 +1,0 @@
-"""The integration integration."""
-
