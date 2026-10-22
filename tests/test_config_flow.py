@@ -1,10 +1,12 @@
 """Tests for the PostNL config flow."""
+
 from unittest.mock import AsyncMock, patch
 
 import aiohttp
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResultType
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.postnl.auth import PostNLAuthError
 from custom_components.postnl.const import (
@@ -87,8 +89,6 @@ async def test_user_flow_cannot_connect(hass):
 
 
 async def test_user_flow_aborts_when_already_configured(hass):
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     MockConfigEntry(
         domain=DOMAIN,
         unique_id=_USER_INPUT[CONF_USERNAME].lower(),
@@ -111,8 +111,6 @@ async def test_user_flow_aborts_when_already_configured(hass):
 
 
 async def test_reauth_flow_updates_credentials_and_reloads(hass):
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=_USER_INPUT[CONF_USERNAME].lower(),
@@ -137,7 +135,10 @@ async def test_reauth_flow_updates_credentials_and_reloads(hass):
 
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={CONF_USERNAME: _USER_INPUT[CONF_USERNAME], CONF_PASSWORD: "new"},
+            user_input={
+                CONF_USERNAME: _USER_INPUT[CONF_USERNAME],
+                CONF_PASSWORD: "new",
+            },
         )
 
     assert result["type"] is FlowResultType.ABORT
@@ -148,8 +149,6 @@ async def test_reauth_flow_updates_credentials_and_reloads(hass):
 
 
 async def test_reauth_flow_surfaces_invalid_auth(hass):
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=_USER_INPUT[CONF_USERNAME].lower(),
@@ -164,7 +163,10 @@ async def test_reauth_flow_surfaces_invalid_auth(hass):
         result = await entry.start_reauth_flow(hass)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            user_input={CONF_USERNAME: _USER_INPUT[CONF_USERNAME], CONF_PASSWORD: "wrong"},
+            user_input={
+                CONF_USERNAME: _USER_INPUT[CONF_USERNAME],
+                CONF_PASSWORD: "wrong",
+            },
         )
 
     assert result["type"] is FlowResultType.FORM
@@ -174,8 +176,6 @@ async def test_reauth_flow_surfaces_invalid_auth(hass):
 
 async def test_reauth_flow_aborts_on_different_account(hass):
     """Reauthenticating with another account's credentials aborts the flow."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=_USER_INPUT[CONF_USERNAME].lower(),
@@ -200,8 +200,6 @@ async def test_reauth_flow_aborts_on_different_account(hass):
 
 async def test_options_flow_updates_filter_and_history(hass):
     """Submitting the sectioned options form persists both buckets."""
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=_USER_INPUT[CONF_USERNAME].lower(),
@@ -241,8 +239,6 @@ async def test_options_flow_ignores_a_legacy_refresh_interval_option(hass):
     user next saves the form, and is simply never read; submitting the form
     drops it without the flow tripping over it.
     """
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=_USER_INPUT[CONF_USERNAME].lower(),

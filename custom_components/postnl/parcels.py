@@ -4,10 +4,11 @@ No I/O and no Home Assistant objects beyond the config entry's options: this is
 the carrier-specific status mapping and canonical-shape logic, kept apart from
 the coordinator (fetching, caching, events) so it stays trivially unit-testable.
 """
+
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 import logging
-from datetime import datetime, timedelta, timezone
 
 from homeassistant.config_entries import ConfigEntry
 
@@ -55,7 +56,10 @@ _STATUS_PATTERNS: tuple[tuple[str, ParcelStatus], ...] = (
     ("gesorteerd", ParcelStatus.IN_TRANSIT),
     ("onderweg", ParcelStatus.IN_TRANSIT),
     ("klaar voor verzending", ParcelStatus.IN_TRANSIT),
-    ("je zending ligt op een sorteercentrum in land van bestemming", ParcelStatus.IN_TRANSIT),
+    (
+        "je zending ligt op een sorteercentrum in land van bestemming",
+        ParcelStatus.IN_TRANSIT,
+    ),
     ("de grens over", ParcelStatus.IN_TRANSIT),
     ("aangekomen in het land van bestemming", ParcelStatus.IN_TRANSIT),
     ("je zending is bezorgd bij de ontvanger", ParcelStatus.DELIVERED),
@@ -72,59 +76,59 @@ _STATUS_PATTERNS: tuple[tuple[str, ParcelStatus], ...] = (
 # delivery delay/failure (G/T codes) dropping back to in_transit.
 _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     # --- Pre-receipt baseline (registered) ---
-    "A01": ParcelStatus.REGISTERED,       # nog niet ontvangen/verwerkt
-    "A03": ParcelStatus.REGISTERED,       # zending aangemeld (pre-advice)
-    "M02": ParcelStatus.REGISTERED,       # nog niet ontvangen/verwerkt (variant of A01)
+    "A01": ParcelStatus.REGISTERED,  # nog niet ontvangen/verwerkt
+    "A03": ParcelStatus.REGISTERED,  # zending aangemeld (pre-advice)
+    "M02": ParcelStatus.REGISTERED,  # nog niet ontvangen/verwerkt (variant of A01)
     # --- In the network (in_transit) ---
-    "B01": ParcelStatus.IN_TRANSIT,       # ontvangen door PostNL
-    "C02": ParcelStatus.IN_TRANSIT,       # pakket is ontvangen door PostNL (variant of B01)
-    "F01": ParcelStatus.IN_TRANSIT,       # pakket wordt opgehaald (collected from the sender)
-    "J01": ParcelStatus.IN_TRANSIT,       # gesorteerd
-    "R01": ParcelStatus.IN_TRANSIT,       # zending is gesorteerd (variant of J01)
-    "J10": ParcelStatus.IN_TRANSIT,       # zending is gesorteerd (variant of J01/R01)
-    "J04": ParcelStatus.IN_TRANSIT,       # voorgemeld en gescand op rit
-    "J21": ParcelStatus.IN_TRANSIT,       # overgedragen aan afhaallocatie (handover, not yet ready)
-    "J31": ParcelStatus.IN_TRANSIT,       # ingenomen aan de sorteergoot
-    "J32": ParcelStatus.IN_TRANSIT,       # overgedragen tijdens route
-    "J30": ParcelStatus.IN_TRANSIT,       # vze ingenomen door planbalie
-    "J39": ParcelStatus.IN_TRANSIT,       # PostNL-punt was vol; onderweg naar een ander PostNL-punt
-    "J40": ParcelStatus.IN_TRANSIT,       # voorgemeld en gesorteerd op rit
-    "J46": ParcelStatus.IN_TRANSIT,       # locker geopend door chauffeur (return collected from a locker)
-    "J44": ParcelStatus.IN_TRANSIT,       # overgenomen tijdens route
-    "J55": ParcelStatus.IN_TRANSIT,       # verwacht bij PostNL-punt
-    "X01": ParcelStatus.IN_TRANSIT,       # zending is klaar voor verzending naar land van bestemming
-    "X02": ParcelStatus.IN_TRANSIT,       # yes! je zending is aangekomen in het land van bestemming
-    "X03": ParcelStatus.IN_TRANSIT,       # pakket wordt ingeklaard in het land van bestemming (customs)
-    "X04": ParcelStatus.IN_TRANSIT,       # vrijgegeven in het land van bestemming, doorgestuurd naar geadresseerde
-    "X08": ParcelStatus.IN_TRANSIT,       # je zending ligt op een sorteercentrum in land van bestemming
-    "X19": ParcelStatus.IN_TRANSIT,       # je zending is de grens over
-    "A21": ParcelStatus.IN_TRANSIT,       # betaald, pakket wordt klaargemaakt voor bezorging (post-customs)
-    "I07": ParcelStatus.IN_TRANSIT,       # retourzending gesorteerd, wordt overgedragen aan afzender
+    "B01": ParcelStatus.IN_TRANSIT,  # ontvangen door PostNL
+    "C02": ParcelStatus.IN_TRANSIT,  # pakket is ontvangen door PostNL (variant of B01)
+    "F01": ParcelStatus.IN_TRANSIT,  # pakket wordt opgehaald (collected from the sender)
+    "J01": ParcelStatus.IN_TRANSIT,  # gesorteerd
+    "R01": ParcelStatus.IN_TRANSIT,  # zending is gesorteerd (variant of J01)
+    "J10": ParcelStatus.IN_TRANSIT,  # zending is gesorteerd (variant of J01/R01)
+    "J04": ParcelStatus.IN_TRANSIT,  # voorgemeld en gescand op rit
+    "J21": ParcelStatus.IN_TRANSIT,  # overgedragen aan afhaallocatie (handover, not yet ready)
+    "J31": ParcelStatus.IN_TRANSIT,  # ingenomen aan de sorteergoot
+    "J32": ParcelStatus.IN_TRANSIT,  # overgedragen tijdens route
+    "J30": ParcelStatus.IN_TRANSIT,  # vze ingenomen door planbalie
+    "J39": ParcelStatus.IN_TRANSIT,  # PostNL-punt was vol; onderweg naar een ander PostNL-punt
+    "J40": ParcelStatus.IN_TRANSIT,  # voorgemeld en gesorteerd op rit
+    "J46": ParcelStatus.IN_TRANSIT,  # locker geopend door chauffeur (return collected from a locker)
+    "J44": ParcelStatus.IN_TRANSIT,  # overgenomen tijdens route
+    "J55": ParcelStatus.IN_TRANSIT,  # verwacht bij PostNL-punt
+    "X01": ParcelStatus.IN_TRANSIT,  # zending is klaar voor verzending naar land van bestemming
+    "X02": ParcelStatus.IN_TRANSIT,  # yes! je zending is aangekomen in het land van bestemming
+    "X03": ParcelStatus.IN_TRANSIT,  # pakket wordt ingeklaard in het land van bestemming (customs)
+    "X04": ParcelStatus.IN_TRANSIT,  # vrijgegeven in het land van bestemming, doorgestuurd naar geadresseerde
+    "X08": ParcelStatus.IN_TRANSIT,  # je zending ligt op een sorteercentrum in land van bestemming
+    "X19": ParcelStatus.IN_TRANSIT,  # je zending is de grens over
+    "A21": ParcelStatus.IN_TRANSIT,  # betaald, pakket wordt klaargemaakt voor bezorging (post-customs)
+    "I07": ParcelStatus.IN_TRANSIT,  # retourzending gesorteerd, wordt overgedragen aan afzender
     # --- Real delivery delay / failed attempt: a genuine step back to transit ---
-    "G01": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt — lukt vandaag niet
-    "G03": ParcelStatus.IN_TRANSIT,       # door drukte duurt de bezorging wat langer (delay)
-    "G05": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt (delay)
-    "K01": ParcelStatus.IN_TRANSIT,       # sorry, bezorgmoment is bijgewerkt (delay, variant of G01/G05/T04)
-    "K70": ParcelStatus.IN_TRANSIT,       # bezorging niet gelukt, pakket gaat naar PostNL-punt
-    "T04": ParcelStatus.IN_TRANSIT,       # bezorgmoment bijgewerkt (delay)
-    "V06": ParcelStatus.IN_TRANSIT,       # door drukte duurt de bezorging wat langer (variant of G03)
+    "G01": ParcelStatus.IN_TRANSIT,  # bezorgmoment bijgewerkt — lukt vandaag niet
+    "G03": ParcelStatus.IN_TRANSIT,  # door drukte duurt de bezorging wat langer (delay)
+    "G05": ParcelStatus.IN_TRANSIT,  # bezorgmoment bijgewerkt (delay)
+    "K01": ParcelStatus.IN_TRANSIT,  # sorry, bezorgmoment is bijgewerkt (delay, variant of G01/G05/T04)
+    "K70": ParcelStatus.IN_TRANSIT,  # bezorging niet gelukt, pakket gaat naar PostNL-punt
+    "T04": ParcelStatus.IN_TRANSIT,  # bezorgmoment bijgewerkt (delay)
+    "V06": ParcelStatus.IN_TRANSIT,  # door drukte duurt de bezorging wat langer (variant of G03)
     # --- Returning to the sender ---
-    "H04": ParcelStatus.RETURNING,        # pakket is beschadigd, gaat retour afzender
+    "H04": ParcelStatus.RETURNING,  # pakket is beschadigd, gaat retour afzender
     # --- Out for delivery ---
-    "J05": ParcelStatus.OUT_FOR_DELIVERY, # bezorger is onderweg
+    "J05": ParcelStatus.OUT_FOR_DELIVERY,  # bezorger is onderweg
     # --- At a pickup point ---
     "I08": ParcelStatus.AT_PICKUP_POINT,  # zending beschikbaar op PostNL-punt
     "J02": ParcelStatus.AT_PICKUP_POINT,  # ligt klaar bij PostNL-punt
     "J12": ParcelStatus.AT_PICKUP_POINT,  # ligt klaar bij PostNL-punt
     "J23": ParcelStatus.AT_PICKUP_POINT,  # kan worden afgehaald bij de pakketautomaat (locker variant of J02/J12)
     # --- Delivered / collected (terminal) ---
-    "A80": ParcelStatus.DELIVERED,        # handtekening voor pakket ontvangen (proof of delivery)
-    "I01": ParcelStatus.DELIVERED,        # pakket is bezorgd
-    "I02": ParcelStatus.DELIVERED,        # afgehaald bij PostNL-punt
-    "I05": ParcelStatus.DELIVERED,        # bezorgd in de brievenbus
-    "I11": ParcelStatus.DELIVERED,        # zending is bezorgd in de brievenbus (variant of I05)
-    "I12": ParcelStatus.DELIVERED,        # zending is bezorgd op de afgesproken plek (variant of I01)
-    "Z01": ParcelStatus.DELIVERED,        # yes! Je zending is bezorgd bij de ontvanger
+    "A80": ParcelStatus.DELIVERED,  # handtekening voor pakket ontvangen (proof of delivery)
+    "I01": ParcelStatus.DELIVERED,  # pakket is bezorgd
+    "I02": ParcelStatus.DELIVERED,  # afgehaald bij PostNL-punt
+    "I05": ParcelStatus.DELIVERED,  # bezorgd in de brievenbus
+    "I11": ParcelStatus.DELIVERED,  # zending is bezorgd in de brievenbus (variant of I05)
+    "I12": ParcelStatus.DELIVERED,  # zending is bezorgd op de afgesproken plek (variant of I01)
+    "Z01": ParcelStatus.DELIVERED,  # yes! Je zending is bezorgd bij de ontvanger
 }
 
 # Known notification / admin / data events that are NOT a movement milestone.
@@ -134,25 +138,27 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
 # drag the status from out_for_delivery back to in_transit). They resolve to
 # ``status: null`` — known, so no "unrecognised" warning — while the exact
 # label is preserved on ``raw_status``.
-_OBSERVATION_META_CODES: frozenset[str] = frozenset({
-    "A04",  # PIOS melding (notification)
-    "A18",  # ETA initieel bepaald
-    "A19",  # ETA gewijzigd
-    "A24",  # herinnering 24 uur in pakketautomaat (locker variant of A25)
-    "A25",  # reminderservice notificaties
-    "A44",  # e-mail met link naar track&trace verzonden (notification)
-    "A65",  # zending herpland (planning change)
-    "A94",  # zelf bezorging gewijzigd
-    "A95",  # bezorging wijzigen niet mogelijk
-    "A96",  # bezorging wijzigen mogelijk
-    "A98",  # voorgemelde zending verrijkt door PostNL regie (data enrichment)
-    "A20",  # verzoek tot betaling kosten voor zending verstuurd (customs invoice notice)
-    "B03",  # "leeg" placeholder (variant of K33)
-    "J09",  # bezorgmoment bijgewerkt, geen mislukte poging (locker parcel does not move)
-    "K33",  # "leeg" placeholder
-    "K50",  # RCS melding (notification)
-    "P21",  # zending kan niet in brievenbus (delivery method changes, parcel does not move)
-})
+_OBSERVATION_META_CODES: frozenset[str] = frozenset(
+    {
+        "A04",  # PIOS melding (notification)
+        "A18",  # ETA initieel bepaald
+        "A19",  # ETA gewijzigd
+        "A24",  # herinnering 24 uur in pakketautomaat (locker variant of A25)
+        "A25",  # reminderservice notificaties
+        "A44",  # e-mail met link naar track&trace verzonden (notification)
+        "A65",  # zending herpland (planning change)
+        "A94",  # zelf bezorging gewijzigd
+        "A95",  # bezorging wijzigen niet mogelijk
+        "A96",  # bezorging wijzigen mogelijk
+        "A98",  # voorgemelde zending verrijkt door PostNL regie (data enrichment)
+        "A20",  # verzoek tot betaling kosten voor zending verstuurd (customs invoice notice)
+        "B03",  # "leeg" placeholder (variant of K33)
+        "J09",  # bezorgmoment bijgewerkt, geen mislukte poging (locker parcel does not move)
+        "K33",  # "leeg" placeholder
+        "K50",  # RCS melding (notification)
+        "P21",  # zending kan niet in brievenbus (delivery method changes, parcel does not move)
+    }
+)
 
 # New-issue link surfaced in the unknown-status warnings so users can paste a
 # ready-made line into a bug report. Points at the pre-filled issue template
@@ -399,7 +405,7 @@ def _convert_native_dimensions(
     length_cm = depth_mm / 10
     width_cm = width_mm / 10
     height_cm = height_mm / 10
-    text = f"{int(round(length_cm))} x {int(round(width_cm))} x {int(round(height_cm))} cm"
+    text = f"{round(length_cm)} x {round(width_cm)} x {round(height_cm)} cm"
     return weight_kg, {
         "length": length_cm,
         "width": width_cm,
@@ -495,11 +501,11 @@ def _parse_iso(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(str(value))
     except ValueError:
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt
 
 
@@ -525,14 +531,14 @@ def sort_parcels_by_ts(
             without_ts.append(parcel)
             continue
         try:
-            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(value)
         except ValueError:
             without_ts.append(parcel)
             continue
         # PostNL mixes offset-aware and naive timestamps in the same payload;
         # treat naive values as UTC so the sort doesn't crash on a mixed list.
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
+            dt = dt.replace(tzinfo=UTC)
         with_ts.append((dt, parcel))
     with_ts.sort(key=lambda item: item[0], reverse=descending)
     return [p for _, p in with_ts] + without_ts
@@ -542,10 +548,12 @@ def _apply_delivered_filter(parcels: list[dict], entry: ConfigEntry) -> list[dic
     """Trim the delivered list according to the configured options."""
     options = entry.options
     filter_type = options.get(CONF_DELIVERED_FILTER_TYPE, DEFAULT_DELIVERED_FILTER_TYPE)
-    filter_amount = int(options.get(CONF_DELIVERED_FILTER_AMOUNT, DEFAULT_DELIVERED_FILTER_AMOUNT))
+    filter_amount = int(
+        options.get(CONF_DELIVERED_FILTER_AMOUNT, DEFAULT_DELIVERED_FILTER_AMOUNT)
+    )
 
     if filter_type == "days":
-        cutoff = datetime.now(timezone.utc) - timedelta(days=filter_amount)
+        cutoff = datetime.now(UTC) - timedelta(days=filter_amount)
         return [p for p in parcels if (dt := _delivery_dt(p)) is None or dt >= cutoff]
 
     return parcels[:filter_amount]

@@ -5,11 +5,12 @@ Sensors read the carrier-agnostic parcel shape produced by
 directly so we can hit edge cases without going through the full
 transform_shipment / API flow.
 """
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
 from homeassistant.helpers import entity_registry as er
+import pytest
 
 from custom_components.postnl.const import DOMAIN, ParcelStatus
 from custom_components.postnl.sensor import (
@@ -17,6 +18,7 @@ from custom_components.postnl.sensor import (
     PostNLDeliveredParcelsSensor,
     PostNLEnRouteToPickupPointSensor,
     PostNLIncomingParcelsSensor,
+    PostNLLastUpdateSensor,
     PostNLLettersSensor,
     PostNLNextDeliverySensor,
     PostNLOutgoingDeliveredParcelsSensor,
@@ -91,9 +93,7 @@ def test_incoming_sensor_counts_only_active_receiver():
 
 
 def test_awaiting_pickup_counts_every_parcel_at_pickup_point():
-    ready = _parcel(
-        barcode="A", status=ParcelStatus.AT_PICKUP_POINT, pickup=True
-    )
+    ready = _parcel(barcode="A", status=ParcelStatus.AT_PICKUP_POINT, pickup=True)
     sensor = PostNLAwaitingPickupSensor(
         _coordinator(
             receiver=[
@@ -105,7 +105,10 @@ def test_awaiting_pickup_counts_every_parcel_at_pickup_point():
         _USERINFO,
     )
     assert sensor.native_value == 2
-    assert {p["barcode"] for p in sensor.extra_state_attributes["parcels"]} == {"A", "C"}
+    assert {p["barcode"] for p in sensor.extra_state_attributes["parcels"]} == {
+        "A",
+        "C",
+    }
 
 
 def test_awaiting_pickup_zero_when_no_parcels():
@@ -146,11 +149,14 @@ def test_summary_sensor_removes_stale_per_parcel_entity_from_registry():
     registry = MagicMock()
     registry.async_get_entity_id.return_value = "sensor.postnl_parcel_a2"
 
-    with patch(
-        "custom_components.postnl.sensor.er.async_get",
-        return_value=registry,
-    ), patch.object(
-        PostNLIncomingParcelsSensor.__bases__[0], "_handle_coordinator_update"
+    with (
+        patch(
+            "custom_components.postnl.sensor.er.async_get",
+            return_value=registry,
+        ),
+        patch.object(
+            PostNLIncomingParcelsSensor.__bases__[0], "_handle_coordinator_update"
+        ),
     ):
         sensor._handle_coordinator_update()
 
@@ -171,7 +177,7 @@ def test_next_delivery_picks_earliest_planned_from():
         _parcel(barcode="B", planned_from="2026-06-17T09:00:00Z"),
     ]
     sensor = PostNLNextDeliverySensor(_coordinator(receiver=parcels), _USERINFO)
-    assert sensor.native_value == datetime(2026, 6, 17, 9, 0, tzinfo=timezone.utc)
+    assert sensor.native_value == datetime(2026, 6, 17, 9, 0, tzinfo=UTC)
     assert sensor.extra_state_attributes["barcode"] == "B"
 
 
@@ -212,7 +218,9 @@ def test_en_route_excludes_delivered():
 
 def test_en_route_excludes_arrived_pickup_parcels():
     parcel = _parcel(barcode="A", pickup=True, status=ParcelStatus.AT_PICKUP_POINT)
-    sensor = PostNLEnRouteToPickupPointSensor(_coordinator(receiver=[parcel]), _USERINFO)
+    sensor = PostNLEnRouteToPickupPointSensor(
+        _coordinator(receiver=[parcel]), _USERINFO
+    )
     assert sensor.native_value == 0
 
 
@@ -239,14 +247,16 @@ def test_outgoing_sensor_lists_active_sender_parcels():
 
 
 def test_delivered_sensor_reads_from_coordinator_delivered_receiver():
-    delivered = [_parcel(
-        barcode="D1",
-        sender="Sender",
-        delivered=True,
-        status=ParcelStatus.DELIVERED,
-        raw_status="Pakket is bezorgd",
-        delivered_at="2026-06-15T10:00:00Z",
-    )]
+    delivered = [
+        _parcel(
+            barcode="D1",
+            sender="Sender",
+            delivered=True,
+            status=ParcelStatus.DELIVERED,
+            raw_status="Pakket is bezorgd",
+            delivered_at="2026-06-15T10:00:00Z",
+        )
+    ]
     sensor = PostNLDeliveredParcelsSensor(
         _coordinator(delivered_receiver=delivered), _USERINFO
     )
@@ -258,13 +268,15 @@ def test_delivered_sensor_reads_from_coordinator_delivered_receiver():
 
 
 def test_outgoing_delivered_sensor_reads_from_coordinator_delivered_sender():
-    delivered = [_parcel(
-        barcode="OD1",
-        delivered=True,
-        status=ParcelStatus.DELIVERED,
-        raw_status="Pakket is bezorgd",
-        delivered_at="2026-06-15T10:00:00Z",
-    )]
+    delivered = [
+        _parcel(
+            barcode="OD1",
+            delivered=True,
+            status=ParcelStatus.DELIVERED,
+            raw_status="Pakket is bezorgd",
+            delivered_at="2026-06-15T10:00:00Z",
+        )
+    ]
     sensor = PostNLOutgoingDeliveredParcelsSensor(
         _coordinator(delivered_sender=delivered), _USERINFO
     )
@@ -304,20 +316,15 @@ def test_letters_sensor_reports_total_and_unread_count():
 
 
 def test_last_update_sensor_reports_coordinator_timestamp():
-    from datetime import datetime, timezone
-
-    from custom_components.postnl.sensor import PostNLLastUpdateSensor
 
     coordinator = _coordinator()
-    moment = datetime(2026, 6, 30, 12, 0, tzinfo=timezone.utc)
+    moment = datetime(2026, 6, 30, 12, 0, tzinfo=UTC)
     coordinator.last_success_time = moment
     sensor = PostNLLastUpdateSensor(coordinator, _USERINFO)
     assert sensor.native_value == moment
 
 
 def test_last_update_sensor_none_before_first_success():
-    from custom_components.postnl.sensor import PostNLLastUpdateSensor
-
     coordinator = _coordinator()
     coordinator.last_success_time = None
     sensor = PostNLLastUpdateSensor(coordinator, _USERINFO)
@@ -338,13 +345,17 @@ _RENAMES = [
 async def test_migration_keeps_custom_entity_id(hass, old_suffix, new_suffix):
     registry = er.async_get(hass)
     old = registry.async_get_or_create("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}")
-    registry.async_update_entity(old.entity_id, new_entity_id="sensor.my_pickup_parcels")
+    registry.async_update_entity(
+        old.entity_id, new_entity_id="sensor.my_pickup_parcels"
+    )
 
     _migrate_summary_unique_ids(registry, _SCOPE)
 
     new_id = registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{new_suffix}")
     assert new_id == "sensor.my_pickup_parcels"
-    assert registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}") is None
+    assert (
+        registry.async_get_entity_id("sensor", DOMAIN, f"{_SCOPE}_{old_suffix}") is None
+    )
 
 
 @pytest.mark.parametrize(("old_suffix", "new_suffix"), _RENAMES)

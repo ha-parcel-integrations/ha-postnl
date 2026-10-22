@@ -38,8 +38,6 @@ _USER_AGENT = (
 class PostNLAuthError(Exception):
     """Raised on an API error."""
 
-    pass
-
 
 class PostNLInvalidAuth(PostNLAuthError):
     """Raised when PostNL rejects the username/password outright.
@@ -87,7 +85,9 @@ class PostNLAuth:
             login_url = str(resp.url)
             body = await resp.text()
 
-        csrf = self._csrf_from_jar(session.cookie_jar) or self._js_value(body, "aicCsrf:")
+        csrf = self._csrf_from_jar(session.cookie_jar) or self._js_value(
+            body, "aicCsrf:"
+        )
         if not csrf:
             raise PostNLAuthError("Could not find CSRF token")
 
@@ -195,24 +195,30 @@ class PostNLAuth:
             raise PostNLAuthError("OIDC state mismatch")
 
         # Step 6: exchange code for tokens
-        return await self._token_request(session, {
-            "grant_type": "authorization_code",
-            "client_id": _OIDC_CLIENT_ID,
-            "code": code,
-            "redirect_uri": _REDIRECT_URI,
-            "code_verifier": verifier,
-        })
+        return await self._token_request(
+            session,
+            {
+                "grant_type": "authorization_code",
+                "client_id": _OIDC_CLIENT_ID,
+                "code": code,
+                "redirect_uri": _REDIRECT_URI,
+                "code_verifier": verifier,
+            },
+        )
 
     @staticmethod
     async def async_refresh_token(refresh_token: str) -> dict:
         """Exchange a refresh token for a new token dict."""
         jar = aiohttp.CookieJar(unsafe=True)
         async with aiohttp.ClientSession(cookie_jar=jar) as session:
-            return await PostNLAuth._token_request(session, {
-                "grant_type": "refresh_token",
-                "client_id": _OIDC_CLIENT_ID,
-                "refresh_token": refresh_token,
-            })
+            return await PostNLAuth._token_request(
+                session,
+                {
+                    "grant_type": "refresh_token",
+                    "client_id": _OIDC_CLIENT_ID,
+                    "refresh_token": refresh_token,
+                },
+            )
 
     @staticmethod
     async def _post_token_url(
@@ -248,7 +254,9 @@ class PostNLAuth:
             token_data = await resp.json(content_type=None)
 
         if "access_token" not in token_data:
-            error = token_data.get("error_description") or token_data.get("error", "unknown")
+            error = token_data.get("error_description") or token_data.get(
+                "error", "unknown"
+            )
             raise PostNLAuthError(f"Token request failed: {error}")
 
         return {
@@ -261,7 +269,9 @@ class PostNLAuth:
 
     @staticmethod
     def _pkce_pair() -> tuple[str, str]:
-        verifier = base64.urlsafe_b64encode(secrets.token_bytes(96)).rstrip(b"=").decode()
+        verifier = (
+            base64.urlsafe_b64encode(secrets.token_bytes(96)).rstrip(b"=").decode()
+        )
         digest = hashlib.sha256(verifier.encode()).digest()
         challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
         return verifier, challenge
@@ -314,7 +324,10 @@ class AsyncConfigEntryAuth:
             # stops two callers from spending the same rotating refresh token
             # twice, which PostNL rejects and which would force a re-login.
             token = self._entry.data.get("token") or {}
-            if "access_token" in token and time.time() < token.get("expires_at", 0) - 30:
+            if (
+                "access_token" in token
+                and time.time() < token.get("expires_at", 0) - 30
+            ):
                 return token["access_token"]
 
             _LOGGER.debug("Access token expired, refreshing")
@@ -333,7 +346,9 @@ class AsyncConfigEntryAuth:
                     )
                     return new_token["access_token"]
                 except PostNLAuthError as err:
-                    _LOGGER.debug("Token refresh failed, falling back to re-login: %s", err)
+                    _LOGGER.debug(
+                        "Token refresh failed, falling back to re-login: %s", err
+                    )
 
             username = self._entry.data.get("username")
             password = self._entry.data.get("password")
@@ -347,7 +362,9 @@ class AsyncConfigEntryAuth:
                     return new_token["access_token"]
                 except PostNLInvalidAuth as err:
                     # Credentials are genuinely wrong — prompt the user to reauth.
-                    _LOGGER.debug("Re-login rejected credentials, triggering reauth: %s", err)
+                    _LOGGER.debug(
+                        "Re-login rejected credentials, triggering reauth: %s", err
+                    )
                     raise ConfigEntryAuthFailed("Invalid PostNL credentials") from err
                 except PostNLAuthError as err:
                     # Transient login hiccup (recaptcha, rate limit, a changed

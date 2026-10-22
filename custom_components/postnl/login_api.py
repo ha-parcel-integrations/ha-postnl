@@ -20,17 +20,10 @@ class PostNLLoginAPI:
         """Initialize the PostNLLoginAPI."""
         self.client = requests.Session()
         self.client.mount(
-            prefix='https://',
-            adapter=HTTPAdapter(
-                max_retries=Retry(
-                    total=5,
-                    backoff_factor=3
-                )
-            )
+            prefix="https://",
+            adapter=HTTPAdapter(max_retries=Retry(total=5, backoff_factor=3)),
         )
-        self.client.headers = {
-            "Authorization": "Bearer " + access_token
-        }
+        self.client.headers = {"Authorization": "Bearer " + access_token}
 
     def userinfo(self):
         """Return the authenticated user's info."""

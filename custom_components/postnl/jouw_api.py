@@ -38,19 +38,14 @@ class PostNLJouwAPI:
         """Initialize the PostNLJouwAPI."""
         self.client = requests.Session()
         self.client.mount(
-            prefix='https://',
+            prefix="https://",
             adapter=HTTPAdapter(
-                max_retries=Retry(
-                    total=5,
-                    backoff_factor=3
-                ),
+                max_retries=Retry(total=5, backoff_factor=3),
                 pool_maxsize=25,
-                pool_block=True
-            )
+                pool_block=True,
+            ),
         )
-        self.client.headers = {
-            "Authorization": "Bearer " + access_token
-        }
+        self.client.headers = {"Authorization": "Bearer " + access_token}
 
     def track_and_trace(self, key):
         """Return track & trace details for a shipment."""
@@ -71,7 +66,9 @@ class PostNLJouwAPI:
 
     def image(self, url: str) -> tuple[bytes, str]:
         """Fetch the raw bytes of a letter image, requiring the same auth as letters()."""
-        response = self.client.get(url, headers=self.mymail_headers, timeout=self.timeout)
+        response = self.client.get(
+            url, headers=self.mymail_headers, timeout=self.timeout
+        )
         response.raise_for_status()
         content_type = response.headers.get("content-type", "image/jpeg")
         return response.content, content_type

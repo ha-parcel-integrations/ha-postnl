@@ -1,14 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 # Derived from https://github.com/arjenbos/ha-postnl, Copyright (c) 2023 Arjen Bos; modified.
 """PostNL custom component for Home Assistant."""
+
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
+import logging
 from typing import Any
 
-import requests
-import urllib3
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
@@ -16,6 +15,8 @@ from homeassistant.exceptions import (
     ConfigEntryNotReady,
     HomeAssistantError,
 )
+import requests
+import urllib3
 
 from .auth import AsyncConfigEntryAuth
 from .const import PLATFORMS
@@ -57,8 +58,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PostNLConfigEntry) -> bo
 
     try:
         userinfo = await hass.async_add_executor_job(postnl_login_api.userinfo)
-    except (requests.exceptions.RequestException, urllib3.exceptions.MaxRetryError) as exception:
-        raise ConfigEntryNotReady("Unable to retrieve user information from PostNL.") from exception
+    except (
+        requests.exceptions.RequestException,
+        urllib3.exceptions.MaxRetryError,
+    ) as exception:
+        raise ConfigEntryNotReady(
+            "Unable to retrieve user information from PostNL."
+        ) from exception
 
     if "error" in userinfo:
         raise ConfigEntryNotReady("Error in retrieving user information from PostNL.")
@@ -66,7 +72,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PostNLConfigEntry) -> bo
     coordinator = PostNLCoordinator(hass, entry)
     # runtime_data must be set before the first refresh: the coordinator reads
     # entry.runtime_data.auth inside _async_update_data.
-    entry.runtime_data = PostNLData(auth=auth, coordinator=coordinator, userinfo=userinfo)
+    entry.runtime_data = PostNLData(
+        auth=auth, coordinator=coordinator, userinfo=userinfo
+    )
 
     # Fetch initial data here, before forwarding to platforms. Raising
     # ConfigEntryNotReady from a forwarded platform is too late for HA to catch

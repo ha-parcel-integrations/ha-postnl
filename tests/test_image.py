@@ -5,6 +5,7 @@ without the full HA platform setup (which is exercised separately by
 test_init.py's setup/unload). _sync_letters is tested by invoking the
 exported async_setup_entry's inner callback indirectly.
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -41,11 +42,13 @@ def _entry(coordinator: MagicMock, userinfo: dict | None = None) -> MagicMock:
     return entry
 
 
-def _letter(letter_id: str = "L1", *, title: str = "16 juni",
-            image_url: str | None = "https://example.com/img1") -> dict:
-    return letter_sample(
-        letter_id, title, unread=False, image_url=image_url, date=None
-    )
+def _letter(
+    letter_id: str = "L1",
+    *,
+    title: str = "16 juni",
+    image_url: str | None = "https://example.com/img1",
+) -> dict:
+    return letter_sample(letter_id, title, unread=False, image_url=image_url, date=None)
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +59,9 @@ def _letter(letter_id: str = "L1", *, title: str = "16 juni",
 def _make_image(coordinator, letter_id="L1"):
     hass = MagicMock()
     hass.async_add_executor_job = AsyncMock()
-    img = PostNLLetterImage(hass, coordinator, _entry(coordinator), _USERINFO, letter_id)
+    img = PostNLLetterImage(
+        hass, coordinator, _entry(coordinator), _USERINFO, letter_id
+    )
     # The base Entity.hass is normally set when the platform adds the entity;
     # in unit tests we set it manually so async_image() can dispatch.
     img.hass = hass
@@ -128,7 +133,9 @@ def test_letter_image_unavailable_when_letter_gone():
     assert img.available is False
 
 
-def test_letter_image_handle_coordinator_update_resets_cache_when_url_changes(monkeypatch):
+def test_letter_image_handle_coordinator_update_resets_cache_when_url_changes(
+    monkeypatch,
+):
     coordinator = _coordinator([_letter("L1", image_url="https://example.com/old")])
     img, _ = _make_image(coordinator, letter_id="L1")
     img._cached_url = "https://example.com/old"
@@ -232,13 +239,14 @@ async def test_async_image_refreshes_token_before_fetch():
 
 @pytest.mark.asyncio
 async def test_async_setup_entry_adds_initial_letter_images(hass):
-    coordinator = _coordinator([_letter("L1"), _letter("L2"), {"id": "L3"}])  # L3 has no image_url
+    coordinator = _coordinator(
+        [_letter("L1"), _letter("L2"), {"id": "L3"}]
+    )  # L3 has no image_url
     entry = _entry(coordinator)
     added: list = []
 
     def _add(generator):
-        for ent in generator:
-            added.append(ent)
+        added.extend(generator)
 
     await async_setup_entry(hass, entry, _add)
 
@@ -253,8 +261,7 @@ async def test_async_setup_entry_listener_adds_new_and_removes_stale(hass):
     added: list = []
 
     def _add(gen):
-        for ent in gen:
-            added.append(ent)
+        added.extend(gen)
 
     listener_holder: dict = {}
 

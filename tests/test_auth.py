@@ -5,16 +5,17 @@ small static helpers on ``PostNLAuth``. The long PKCE + Capture login
 flow itself is covered by an end-to-end test that drives a mocked
 aiohttp session through every step.
 """
+
 from __future__ import annotations
 
 import base64
+from contextlib import asynccontextmanager
 import hashlib
 import time
-from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+import pytest
 
 from custom_components.postnl.auth import (
     AsyncConfigEntryAuth,
@@ -31,9 +32,11 @@ from custom_components.postnl.auth import (
 def test_pkce_pair_challenge_matches_verifier():
     verifier, challenge = PostNLAuth._pkce_pair()
     assert verifier and challenge
-    expected = base64.urlsafe_b64encode(
-        hashlib.sha256(verifier.encode()).digest()
-    ).rstrip(b"=").decode()
+    expected = (
+        base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest())
+        .rstrip(b"=")
+        .decode()
+    )
     assert challenge == expected
 
 
@@ -108,12 +111,16 @@ def _response(*, json_data=None, text="", headers=None, status=200):
 
 @pytest.mark.asyncio
 async def test_token_request_returns_normalised_dict():
-    session = _aiohttp_session(_response(json_data={
-        "access_token": "newat",
-        "refresh_token": "newrt",
-        "expires_in": 1800,
-        "token_type": "Bearer",
-    }))
+    session = _aiohttp_session(
+        _response(
+            json_data={
+                "access_token": "newat",
+                "refresh_token": "newrt",
+                "expires_in": 1800,
+                "token_type": "Bearer",
+            }
+        )
+    )
     before = time.time()
     token = await PostNLAuth._token_request(session, {"grant_type": "refresh_token"})
     after = time.time()
@@ -127,10 +134,14 @@ async def test_token_request_returns_normalised_dict():
 
 @pytest.mark.asyncio
 async def test_token_request_raises_with_error_description():
-    session = _aiohttp_session(_response(json_data={
-        "error": "invalid_grant",
-        "error_description": "Refresh token expired",
-    }))
+    session = _aiohttp_session(
+        _response(
+            json_data={
+                "error": "invalid_grant",
+                "error_description": "Refresh token expired",
+            }
+        )
+    )
     with pytest.raises(PostNLAuthError, match="Refresh token expired"):
         await PostNLAuth._token_request(session, {})
 
@@ -159,8 +170,10 @@ async def test_token_request_defaults_expires_in_when_missing():
 
 @pytest.mark.asyncio
 async def test_async_refresh_token_delegates_to_token_request():
-    with patch("custom_components.postnl.auth.PostNLAuth._token_request",
-               new=AsyncMock(return_value={"access_token": "from_refresh"})) as mock_call:
+    with patch(
+        "custom_components.postnl.auth.PostNLAuth._token_request",
+        new=AsyncMock(return_value={"access_token": "from_refresh"}),
+    ) as mock_call:
         result = await PostNLAuth.async_refresh_token("oldrt")
 
     assert result == {"access_token": "from_refresh"}
@@ -175,8 +188,12 @@ async def test_async_refresh_token_delegates_to_token_request():
 # ---------------------------------------------------------------------------
 
 
-def _entry(token: dict | None, *, username: str | None = "user@example.com",
-           password: str | None = "secret") -> MagicMock:
+def _entry(
+    token: dict | None,
+    *,
+    username: str | None = "user@example.com",
+    password: str | None = "secret",  # noqa: S107 - test value
+) -> MagicMock:
     entry = MagicMock()
     data: dict = {"token": token} if token is not None else {}
     if username:
@@ -211,20 +228,30 @@ async def test_check_and_refresh_token_raises_when_token_lacks_access_token():
 @pytest.mark.asyncio
 async def test_check_and_refresh_token_returns_current_when_still_valid():
     far_future = time.time() + 3600
-    entry = _entry({"access_token": "current", "expires_at": far_future, "refresh_token": "rt"})
+    entry = _entry(
+        {"access_token": "current", "expires_at": far_future, "refresh_token": "rt"}
+    )
     auth = AsyncConfigEntryAuth(_hass(), entry)
     assert await auth.check_and_refresh_token() == "current"
 
 
 @pytest.mark.asyncio
 async def test_check_and_refresh_token_uses_refresh_when_expired():
-    new_token = {"access_token": "rotated", "refresh_token": "newrt", "expires_at": time.time() + 1800}
-    entry = _entry({"access_token": "old", "expires_at": time.time() - 60, "refresh_token": "rt"})
+    new_token = {
+        "access_token": "rotated",
+        "refresh_token": "newrt",
+        "expires_at": time.time() + 1800,
+    }
+    entry = _entry(
+        {"access_token": "old", "expires_at": time.time() - 60, "refresh_token": "rt"}
+    )
     hass = _hass()
     auth = AsyncConfigEntryAuth(hass, entry)
 
-    with patch("custom_components.postnl.auth.PostNLAuth.async_refresh_token",
-               new=AsyncMock(return_value=new_token)) as mock_refresh:
+    with patch(
+        "custom_components.postnl.auth.PostNLAuth.async_refresh_token",
+        new=AsyncMock(return_value=new_token),
+    ) as mock_refresh:
         result = await auth.check_and_refresh_token()
 
     assert result == "rotated"
@@ -241,11 +268,17 @@ async def test_check_and_refresh_token_falls_back_to_login_when_refresh_fails():
     hass = _hass()
     auth = AsyncConfigEntryAuth(hass, entry)
 
-    with patch("custom_components.postnl.auth.PostNLAuth.async_refresh_token",
-               new=AsyncMock(side_effect=PostNLAuthError("expired"))):
-        with patch("custom_components.postnl.auth.PostNLAuth.async_login",
-                   new=AsyncMock(return_value=new_token)):
-            result = await auth.check_and_refresh_token()
+    with (
+        patch(
+            "custom_components.postnl.auth.PostNLAuth.async_refresh_token",
+            new=AsyncMock(side_effect=PostNLAuthError("expired")),
+        ),
+        patch(
+            "custom_components.postnl.auth.PostNLAuth.async_login",
+            new=AsyncMock(return_value=new_token),
+        ),
+    ):
+        result = await auth.check_and_refresh_token()
 
     assert result == "fresh"
 
@@ -257,8 +290,10 @@ async def test_check_and_refresh_token_skips_refresh_when_no_refresh_token_prese
     hass = _hass()
     auth = AsyncConfigEntryAuth(hass, entry)
 
-    with patch("custom_components.postnl.auth.PostNLAuth.async_login",
-               new=AsyncMock(return_value=new_token)) as mock_login:
+    with patch(
+        "custom_components.postnl.auth.PostNLAuth.async_login",
+        new=AsyncMock(return_value=new_token),
+    ) as mock_login:
         result = await auth.check_and_refresh_token()
 
     assert result == "fresh"
@@ -271,12 +306,18 @@ async def test_check_and_refresh_token_reauths_when_credentials_invalid():
     entry = _entry({"access_token": "old", "expires_at": 0, "refresh_token": "rt"})
     auth = AsyncConfigEntryAuth(_hass(), entry)
 
-    with patch("custom_components.postnl.auth.PostNLAuth.async_refresh_token",
-               new=AsyncMock(side_effect=PostNLAuthError("expired"))):
-        with patch("custom_components.postnl.auth.PostNLAuth.async_login",
-                   new=AsyncMock(side_effect=PostNLInvalidAuth("check your credentials"))):
-            with pytest.raises(ConfigEntryAuthFailed):
-                await auth.check_and_refresh_token()
+    with (
+        patch(
+            "custom_components.postnl.auth.PostNLAuth.async_refresh_token",
+            new=AsyncMock(side_effect=PostNLAuthError("expired")),
+        ),
+        patch(
+            "custom_components.postnl.auth.PostNLAuth.async_login",
+            new=AsyncMock(side_effect=PostNLInvalidAuth("check your credentials")),
+        ),
+        pytest.raises(ConfigEntryAuthFailed),
+    ):
+        await auth.check_and_refresh_token()
 
 
 @pytest.mark.asyncio
@@ -286,12 +327,18 @@ async def test_check_and_refresh_token_retries_when_login_transiently_fails():
     entry = _entry({"access_token": "old", "expires_at": 0, "refresh_token": "rt"})
     auth = AsyncConfigEntryAuth(_hass(), entry)
 
-    with patch("custom_components.postnl.auth.PostNLAuth.async_refresh_token",
-               new=AsyncMock(side_effect=PostNLAuthError("expired"))):
-        with patch("custom_components.postnl.auth.PostNLAuth.async_login",
-                   new=AsyncMock(side_effect=PostNLAuthError("recaptcha challenge"))):
-            with pytest.raises(HomeAssistantError) as excinfo:
-                await auth.check_and_refresh_token()
+    with (
+        patch(
+            "custom_components.postnl.auth.PostNLAuth.async_refresh_token",
+            new=AsyncMock(side_effect=PostNLAuthError("expired")),
+        ),
+        patch(
+            "custom_components.postnl.auth.PostNLAuth.async_login",
+            new=AsyncMock(side_effect=PostNLAuthError("recaptcha challenge")),
+        ),
+        pytest.raises(HomeAssistantError) as excinfo,
+    ):
+        await auth.check_and_refresh_token()
 
     assert not isinstance(excinfo.value, ConfigEntryAuthFailed)
 
@@ -300,14 +347,19 @@ async def test_check_and_refresh_token_retries_when_login_transiently_fails():
 async def test_check_and_refresh_token_preserves_refresh_token_when_response_omits_it():
     """PostNL sometimes refreshes without returning a new refresh token; the
     existing one must be kept so the next cycle can still refresh."""
-    new_token = {"access_token": "rotated", "refresh_token": None,
-                 "expires_at": time.time() + 1800}
+    new_token = {
+        "access_token": "rotated",
+        "refresh_token": None,
+        "expires_at": time.time() + 1800,
+    }
     entry = _entry({"access_token": "old", "expires_at": 0, "refresh_token": "keepme"})
     hass = _hass()
     auth = AsyncConfigEntryAuth(hass, entry)
 
-    with patch("custom_components.postnl.auth.PostNLAuth.async_refresh_token",
-               new=AsyncMock(return_value=new_token)):
+    with patch(
+        "custom_components.postnl.auth.PostNLAuth.async_refresh_token",
+        new=AsyncMock(return_value=new_token),
+    ):
         result = await auth.check_and_refresh_token()
 
     assert result == "rotated"
@@ -320,8 +372,11 @@ async def test_check_and_refresh_token_returns_early_when_another_caller_refresh
     """If a concurrent caller refreshes while we wait for the lock, the
     re-check inside the lock returns the fresh token without refreshing again."""
     expired = {"access_token": "old", "expires_at": 0, "refresh_token": "rt"}
-    refreshed = {"access_token": "by-other", "expires_at": time.time() + 3600,
-                 "refresh_token": "rt"}
+    refreshed = {
+        "access_token": "by-other",
+        "expires_at": time.time() + 3600,
+        "refresh_token": "rt",
+    }
     entry = MagicMock()
     # First read (outer check) sees the expired token; the read inside the lock
     # sees the token a concurrent caller already refreshed.
@@ -330,8 +385,9 @@ async def test_check_and_refresh_token_returns_early_when_another_caller_refresh
     hass = _hass()
     auth = AsyncConfigEntryAuth(hass, entry)
 
-    with patch("custom_components.postnl.auth.PostNLAuth.async_refresh_token",
-               new=AsyncMock()) as mock_refresh:
+    with patch(
+        "custom_components.postnl.auth.PostNLAuth.async_refresh_token", new=AsyncMock()
+    ) as mock_refresh:
         result = await auth.check_and_refresh_token()
 
     assert result == "by-other"
@@ -351,11 +407,15 @@ async def test_login_raises_invalid_auth_when_capture_returns_no_token():
     session = _aiohttp_session(authorize_resp, capture_submit_resp, capture_poll_resp)
     session.cookie_jar = []
 
-    with patch("custom_components.postnl.auth.aiohttp.ClientSession",
-               return_value=_AsyncContext(session)):
-        with patch.object(PostNLAuth, "_pkce_pair", return_value=("v", "c")):
-            with pytest.raises(PostNLInvalidAuth):
-                await PostNLAuth("user", "pw").async_login()
+    with (
+        patch(
+            "custom_components.postnl.auth.aiohttp.ClientSession",
+            return_value=_AsyncContext(session),
+        ),
+        patch.object(PostNLAuth, "_pkce_pair", return_value=("v", "c")),
+        pytest.raises(PostNLInvalidAuth),
+    ):
+        await PostNLAuth("user", "pw").async_login()
 
 
 @pytest.mark.asyncio
@@ -368,10 +428,14 @@ async def test_check_and_refresh_token_raises_when_no_creds_and_refresh_fails():
     hass = _hass()
     auth = AsyncConfigEntryAuth(hass, entry)
 
-    with patch("custom_components.postnl.auth.PostNLAuth.async_refresh_token",
-               new=AsyncMock(side_effect=PostNLAuthError("expired"))):
-        with pytest.raises(ConfigEntryAuthFailed):
-            await auth.check_and_refresh_token()
+    with (
+        patch(
+            "custom_components.postnl.auth.PostNLAuth.async_refresh_token",
+            new=AsyncMock(side_effect=PostNLAuthError("expired")),
+        ),
+        pytest.raises(ConfigEntryAuthFailed),
+    ):
+        await auth.check_and_refresh_token()
 
 
 def test_access_token_property_reads_from_entry():
@@ -403,33 +467,43 @@ async def test_async_login_walks_full_pkce_capture_flow():
     capture_poll_resp = _response(text='{"accessToken":"capturetok"}')
     token_url_resp = _response(headers={"Location": auth_url})
     authorize_redirect_resp = _response(headers={"Location": final_redirect})
-    token_resp = _response(json_data={
-        "access_token": "finaltoken",
-        "refresh_token": "rt",
-        "expires_in": 3600,
-        "token_type": "Bearer",
-    })
+    token_resp = _response(
+        json_data={
+            "access_token": "finaltoken",
+            "refresh_token": "rt",
+            "expires_in": 3600,
+            "token_type": "Bearer",
+        }
+    )
 
     session = _aiohttp_session(
-        authorize_resp,        # step 1: GET authorize
-        capture_submit_resp,   # step 2: POST capture
-        capture_poll_resp,     # step 3: GET capture result
-        token_url_resp,        # step 4: POST token-url
+        authorize_resp,  # step 1: GET authorize
+        capture_submit_resp,  # step 2: POST capture
+        capture_poll_resp,  # step 3: GET capture result
+        token_url_resp,  # step 4: POST token-url
         authorize_redirect_resp,  # step 5: GET auth_url
-        token_resp,            # step 6: POST token
+        token_resp,  # step 6: POST token
     )
     session.cookie_jar = []  # _csrf_from_jar fallback path
 
-    with patch("custom_components.postnl.auth.aiohttp.ClientSession",
-               return_value=_AsyncContext(session)):
-        with patch("custom_components.postnl.auth.secrets.token_bytes",
-                   return_value=b"\x00" * 24):
-            with patch.object(PostNLAuth, "_pkce_pair", return_value=("verifier", "challenge")):
-                # Patch out the state check so the canned final_redirect's
-                # static "STATE_VALUE" matches whatever we generated.
-                with patch("custom_components.postnl.auth.base64.urlsafe_b64encode",
-                           return_value=b"STATE_VALUE"):
-                    token = await PostNLAuth("user", "pw").async_login()
+    with (
+        patch(
+            "custom_components.postnl.auth.aiohttp.ClientSession",
+            return_value=_AsyncContext(session),
+        ),
+        patch(
+            "custom_components.postnl.auth.secrets.token_bytes",
+            return_value=b"\x00" * 24,
+        ),
+        patch.object(PostNLAuth, "_pkce_pair", return_value=("verifier", "challenge")),
+        # Patch out the state check so the canned final_redirect's
+        # static "STATE_VALUE" matches whatever we generated.
+        patch(
+            "custom_components.postnl.auth.base64.urlsafe_b64encode",
+            return_value=b"STATE_VALUE",
+        ),
+    ):
+        token = await PostNLAuth("user", "pw").async_login()
 
     assert token["access_token"] == "finaltoken"
     assert token["refresh_token"] == "rt"

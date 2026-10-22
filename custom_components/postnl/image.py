@@ -1,8 +1,9 @@
 """Image platform for the PostNL integration — photos of announced letters."""
+
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 from homeassistant.components.image import ImageEntity
@@ -29,7 +30,7 @@ def _letter_date_as_datetime(letter: dict | None) -> datetime | None:
     if not isinstance(date_iso, str) or not date_iso:
         return None
     try:
-        return datetime.fromisoformat(date_iso).replace(tzinfo=timezone.utc)
+        return datetime.fromisoformat(date_iso).replace(tzinfo=UTC)
     except ValueError:
         return None
 

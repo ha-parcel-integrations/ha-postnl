@@ -5,6 +5,7 @@ One place, because sensors, the button and the calendar must all land on the
 with the button and calendar docstrings noting that they mirrored the sensor's
 copy, which is exactly the kind of duplication that drifts.
 """
+
 from __future__ import annotations
 
 from typing import Any

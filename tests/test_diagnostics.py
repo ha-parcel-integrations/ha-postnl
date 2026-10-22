@@ -1,4 +1,5 @@
 """Tests for the PostNL diagnostics handler."""
+
 from unittest.mock import MagicMock
 
 from custom_components.postnl import PostNLData
@@ -58,15 +59,17 @@ async def test_diagnostics_redacts_userinfo():
 
 async def test_diagnostics_redacts_parcel_pii():
     entry = _entry(
-        receiver=[{
-            "barcode": "3SABC",
-            "key": "3SABC-NL-1234AB",
-            "source_display_name": "Brand",
-            "receiver_title": "Peter",
-            "receiver": "Jane Doe",
-            "url": "https://jouw.postnl.nl/track-and-trace/3SABC-NL-1234AB",
-            "status_message": "ON_THE_WAY",
-        }],
+        receiver=[
+            {
+                "barcode": "3SABC",
+                "key": "3SABC-NL-1234AB",
+                "source_display_name": "Brand",
+                "receiver_title": "Peter",
+                "receiver": "Jane Doe",
+                "url": "https://jouw.postnl.nl/track-and-trace/3SABC-NL-1234AB",
+                "status_message": "ON_THE_WAY",
+            }
+        ],
     )
     result = await async_get_config_entry_diagnostics(MagicMock(), entry)
     parcel = result["receiver"][0]
@@ -103,5 +106,13 @@ async def test_diagnostics_reports_counts_and_options():
 
 
 def test_to_redact_includes_pii_keys():
-    for key in ("username", "password", "token", "access_token", "email", "barcode", "postalCode"):
+    for key in (
+        "username",
+        "password",
+        "token",
+        "access_token",
+        "email",
+        "barcode",
+        "postalCode",
+    ):
         assert key in TO_REDACT

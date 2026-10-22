@@ -5,11 +5,10 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 import hashlib
 import logging
-from datetime import datetime, timedelta, timezone
 
-import requests
 from gql.transport.exceptions import TransportError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -17,6 +16,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
+import requests
 
 from .auth import AsyncConfigEntryAuth
 from .const import (
@@ -63,10 +63,9 @@ def _next_anchor(now: datetime) -> datetime:
     )
     if now < six_today:
         return six_today
-    midnight_tomorrow = (now + timedelta(days=1)).replace(
+    return (now + timedelta(days=1)).replace(
         hour=QUIET_WINDOW_START_HOUR, minute=0, second=0, microsecond=0
     )
-    return midnight_tomorrow
 
 
 def _hottest_tier_minutes(active_parcels: list[dict], now: datetime) -> int:
@@ -142,9 +141,9 @@ class PostNLCoordinator(DataUpdateCoordinator):
         self._known_state: dict[str, ParcelStatus] | None = None
         # barcode -> last seen (planned_from, planned_to) tuple. Mirrors
         # ``_known_state`` for delivery-time-change detection.
-        self._known_delivery_times: (
-            dict[str, tuple[str | None, str | None]] | None
-        ) = None
+        self._known_delivery_times: dict[str, tuple[str | None, str | None]] | None = (
+            None
+        )
         # barcode -> last seen ParcelStatus for *outgoing* (sender) parcels —
         # own sent shipments and returns both land in senderShipments. Tracked
         # over the full sender list so a status change or a
@@ -174,7 +173,10 @@ class PostNLCoordinator(DataUpdateCoordinator):
         # Tier last computed by _hottest_tier_minutes — surfaced in
         # diagnostics. None until the first successful refresh.
         self._current_tier_minutes: int | None = None
-        _LOGGER.debug("PostNLCoordinator initialized with update interval: %s", self.update_interval)
+        _LOGGER.debug(
+            "PostNLCoordinator initialized with update interval: %s",
+            self.update_interval,
+        )
 
     @property
     def current_tier_minutes(self) -> int | None:
@@ -193,7 +195,9 @@ class PostNLCoordinator(DataUpdateCoordinator):
             return self._cached_device_id
         registry = dr.async_get(self.hass)
         device = next(
-            iter(dr.async_entries_for_config_entry(registry, self.config_entry.entry_id)),
+            iter(
+                dr.async_entries_for_config_entry(registry, self.config_entry.entry_id)
+            ),
             None,
         )
         if device is not None:
@@ -226,29 +230,36 @@ class PostNLCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Authenticating with PostNL API.")
             await self.async_get_jouw_api()
 
-            data: dict[str, list[dict]] = {
-                'receiver': [],
-                'sender': []
-            }
+            data: dict[str, list[dict]] = {"receiver": [], "sender": []}
 
-            shipments = await self.hass.async_add_executor_job(self.graphq_api.shipments)
+            shipments = await self.hass.async_add_executor_job(
+                self.graphq_api.shipments
+            )
 
             _LOGGER.debug("Shipments fetched: %s", shipments)
-            receiver_shipments = [self.transform_shipment(shipment) for shipment in
-                                  shipments.get('trackedShipments', {}).get('receiverShipments', [])]
-            data['receiver'] = await asyncio.gather(*receiver_shipments)
+            receiver_shipments = [
+                self.transform_shipment(shipment)
+                for shipment in shipments.get("trackedShipments", {}).get(
+                    "receiverShipments", []
+                )
+            ]
+            data["receiver"] = await asyncio.gather(*receiver_shipments)
 
-            sender_shipments = [self.transform_shipment(shipment) for shipment in
-                                shipments.get('trackedShipments', {}).get('senderShipments', [])]
-            data['sender'] = await asyncio.gather(*sender_shipments)
+            sender_shipments = [
+                self.transform_shipment(shipment)
+                for shipment in shipments.get("trackedShipments", {}).get(
+                    "senderShipments", []
+                )
+            ]
+            data["sender"] = await asyncio.gather(*sender_shipments)
 
-            data['receiver'] = sort_parcels_by_ts(data['receiver'], 'planned_from')
-            data['sender'] = sort_parcels_by_ts(data['sender'], 'planned_from')
+            data["receiver"] = sort_parcels_by_ts(data["receiver"], "planned_from")
+            data["sender"] = sort_parcels_by_ts(data["sender"], "planned_from")
 
             # Keep the fallback/history caches bounded to barcodes PostNL
             # still reports; anything older can never be needed again.
             current_barcodes = {
-                p.get('barcode') for p in data['receiver'] if p.get('barcode')
+                p.get("barcode") for p in data["receiver"] if p.get("barcode")
             }
             self._parcel_cache = {
                 k: v for k, v in self._parcel_cache.items() if k in current_barcodes
@@ -262,43 +273,41 @@ class PostNLCoordinator(DataUpdateCoordinator):
             # Incoming events over the full receiver list (active + delivered),
             # so the transition to delivered is visible in one set — mirrors
             # the outgoing events below.
-            self._fire_change_events(data['receiver'])
+            self._fire_change_events(data["receiver"])
             self._known_state = {
-                p["barcode"]: p["status"]
-                for p in data['receiver']
-                if p.get("barcode")
+                p["barcode"]: p["status"] for p in data["receiver"] if p.get("barcode")
             }
             self._known_delivery_times = {
                 p["barcode"]: (p.get("planned_from"), p.get("planned_to"))
-                for p in data['receiver']
+                for p in data["receiver"]
                 if p.get("barcode")
             }
 
-            delivered_receiver = [p for p in data['receiver'] if p.get('delivered')]
+            delivered_receiver = [p for p in data["receiver"] if p.get("delivered")]
             self.delivered_receiver = sort_parcels_by_ts(
                 self._apply_delivered_filter(delivered_receiver),
-                'delivered_at',
+                "delivered_at",
                 descending=True,
             )
 
             # Outgoing events over the full sender list (active + delivered),
             # so a hop from in-transit to delivered is visible in one set.
-            self._fire_outgoing_change_events(data['sender'])
+            self._fire_outgoing_change_events(data["sender"])
             self._known_outgoing_state = {
-                p["barcode"]: p["status"]
-                for p in data['sender']
-                if p.get("barcode")
+                p["barcode"]: p["status"] for p in data["sender"] if p.get("barcode")
             }
 
-            delivered_sender = [p for p in data['sender'] if p.get('delivered')]
+            delivered_sender = [p for p in data["sender"] if p.get("delivered")]
             self.delivered_sender = sort_parcels_by_ts(
                 self._apply_delivered_filter(delivered_sender),
-                'delivered_at',
+                "delivered_at",
                 descending=True,
             )
 
             try:
-                letters_payload = await self.hass.async_add_executor_job(self.jouw_api.letters)
+                letters_payload = await self.hass.async_add_executor_job(
+                    self.jouw_api.letters
+                )
                 self.letters = extract_letters(letters_payload)
                 self._fire_letter_events(self.letters)
                 self._known_letter_ids = {
@@ -309,25 +318,31 @@ class PostNLCoordinator(DataUpdateCoordinator):
 
             _LOGGER.info(
                 "Updated PostNL data: %d receiver packages, %d sender packages, %d delivered shown, %d letters.",
-                len(data['receiver']), len(data['sender']), len(self.delivered_receiver), len(self.letters),
+                len(data["receiver"]),
+                len(data["sender"]),
+                len(self.delivered_receiver),
+                len(self.letters),
             )
 
-            self.last_success_time = datetime.now(timezone.utc)
+            self.last_success_time = datetime.now(UTC)
 
-            active_receiver = [p for p in data['receiver'] if not p.get('delivered')]
+            active_receiver = [p for p in data["receiver"] if not p.get("delivered")]
             now = dt_util.now()
             self._current_tier_minutes = _hottest_tier_minutes(active_receiver, now)
             self.update_interval = _next_update_interval(
                 now, self._current_tier_minutes, self.config_entry.entry_id
             )
 
-            return data
         except ConfigEntryAuthFailed:
             raise
         except HomeAssistantError as exception:
             raise UpdateFailed("Authentication failed") from exception
         except (requests.exceptions.RequestException, TransportError) as exception:
-            raise UpdateFailed(f"Unable to update PostNL data: {exception}") from exception
+            raise UpdateFailed(
+                f"Unable to update PostNL data: {exception}"
+            ) from exception
+        else:
+            return data
 
     def _fire_change_events(self, parcels: list[dict]) -> None:
         """Fire events for newly-registered parcels and parcel transitions.
@@ -478,9 +493,7 @@ class PostNLCoordinator(DataUpdateCoordinator):
     def _include_history(self) -> bool:
         """Whether the opt-in per-parcel history option is enabled."""
         return bool(
-            self.config_entry.options.get(
-                CONF_INCLUDE_HISTORY, DEFAULT_INCLUDE_HISTORY
-            )
+            self.config_entry.options.get(CONF_INCLUDE_HISTORY, DEFAULT_INCLUDE_HISTORY)
         )
 
     def _delivered_history(self, shipment) -> list[dict] | None:
@@ -497,18 +510,19 @@ class PostNLCoordinator(DataUpdateCoordinator):
         """
         if not self._include_history:
             return None
-        barcode = shipment.get('barcode')
+        barcode = shipment.get("barcode")
         if barcode and barcode in self._delivered_history_cache:
             return self._delivered_history_cache[barcode]
         try:
-            details = self.jouw_api.track_and_trace(shipment['key'])
+            details = self.jouw_api.track_and_trace(shipment["key"])
         except requests.exceptions.RequestException as exception:
             _LOGGER.warning(
                 "History fetch failed for delivered shipment %s: %s",
-                shipment.get('key'), exception,
+                shipment.get("key"),
+                exception,
             )
             return None
-        colli = details.get('colli', {}).get(shipment['barcode'], {})
+        colli = details.get("colli", {}).get(shipment["barcode"], {})
         history = build_history(_extract_observations(colli)) if colli else None
         if barcode:
             self._delivered_history_cache[barcode] = history
@@ -516,21 +530,24 @@ class PostNLCoordinator(DataUpdateCoordinator):
 
     async def transform_shipment(self, shipment) -> dict:
         """Transform a raw shipment into the canonical parcel shape."""
-        _LOGGER.debug('Updating %s', shipment.get('key'))
+        _LOGGER.debug("Updating %s", shipment.get("key"))
 
-        receiver_title = (shipment.get('receiverTitle') or '').strip() or None
+        receiver_title = (shipment.get("receiverTitle") or "").strip() or None
         # ``title`` may arrive with a leading space, like ``receiverTitle``.
-        title = (shipment.get('title') or '').strip() or None
+        title = (shipment.get("title") or "").strip() or None
         # ``sourceDisplayName`` is *not* the sender: it is the display name of
         # the account a shipment is shared from (paired with
         # ``sourceAccountId``). It is null for your own parcels and holds the
         # housemate's name for parcels you only see through shared visibility
         # in the PostNL app (#13). Kept raw so that signal survives.
-        source_display_name = (shipment.get('sourceDisplayName') or '').strip() or None
+        source_display_name = (shipment.get("sourceDisplayName") or "").strip() or None
 
         try:
-            if shipment.get('delivered'):
-                _LOGGER.debug('%s already delivered, no need to call jouw.postnl.', shipment.get('key'))
+            if shipment.get("delivered"):
+                _LOGGER.debug(
+                    "%s already delivered, no need to call jouw.postnl.",
+                    shipment.get("key"),
+                )
 
                 # Delivered short-circuits the Track & Trace call, so there's no
                 # ``colli.recipient.names.personName`` to read — the GraphQL
@@ -541,54 +558,63 @@ class PostNLCoordinator(DataUpdateCoordinator):
                 history = await self.hass.async_add_executor_job(
                     self._delivered_history, shipment
                 )
-                return normalize_parcel({
-                    "key": shipment.get('key'),
-                    "barcode": shipment.get('barcode'),
-                    "name": title,
-                    "url": shipment.get('detailsUrl'),
-                    "shipment_type": shipment.get('shipmentType'),
-                    "receiver_title": receiver_title,
-                    "receiver": receiver_title,
-                    "source_display_name": source_display_name,
-                    "status_message": "Pakket is bezorgd",
-                    "delivered": shipment.get('delivered'),
-                    "delivery_date": shipment.get('deliveredTimeStamp'),
-                    "delivery_address_type": shipment.get('deliveryAddressType'),
-                    "planned_date": None,
-                    "planned_from": None,
-                    "planned_to": None,
-                    "expected_datetime": None,
-                    "dimensions": None,
-                }, history=history)
+                return normalize_parcel(
+                    {
+                        "key": shipment.get("key"),
+                        "barcode": shipment.get("barcode"),
+                        "name": title,
+                        "url": shipment.get("detailsUrl"),
+                        "shipment_type": shipment.get("shipmentType"),
+                        "receiver_title": receiver_title,
+                        "receiver": receiver_title,
+                        "source_display_name": source_display_name,
+                        "status_message": "Pakket is bezorgd",
+                        "delivered": shipment.get("delivered"),
+                        "delivery_date": shipment.get("deliveredTimeStamp"),
+                        "delivery_address_type": shipment.get("deliveryAddressType"),
+                        "planned_date": None,
+                        "planned_from": None,
+                        "planned_to": None,
+                        "expected_datetime": None,
+                        "dimensions": None,
+                    },
+                    history=history,
+                )
 
-            _LOGGER.debug("Fetching Track and Trace details for shipment %s.", shipment['key'])
+            _LOGGER.debug(
+                "Fetching Track and Trace details for shipment %s.", shipment["key"]
+            )
             try:
                 track_and_trace_details = await self.hass.async_add_executor_job(
-                    self.jouw_api.track_and_trace, shipment['key']
+                    self.jouw_api.track_and_trace, shipment["key"]
                 )
             except requests.exceptions.RequestException as exception:
                 # One broken T&T call must not fail the whole refresh. Degrade
                 # per parcel: reuse the last successful transform when we have
                 # one, otherwise fall through with the GraphQL-only fields.
-                barcode = shipment.get('barcode')
+                barcode = shipment.get("barcode")
                 cached = self._parcel_cache.get(barcode) if barcode else None
                 if cached is not None:
                     _LOGGER.warning(
                         "Track & Trace failed for shipment %s; reusing previous data: %s",
-                        shipment.get('key'), exception,
+                        shipment.get("key"),
+                        exception,
                     )
                     return cached
                 _LOGGER.warning(
                     "Track & Trace failed for shipment %s; using shipment fields only: %s",
-                    shipment.get('key'), exception,
+                    shipment.get("key"),
+                    exception,
                 )
                 track_and_trace_details = {}
 
-            if not track_and_trace_details.get('colli'):
-                _LOGGER.debug("No colli found for shipment %s.", shipment['key'])
+            if not track_and_trace_details.get("colli"):
+                _LOGGER.debug("No colli found for shipment %s.", shipment["key"])
                 _LOGGER.debug("Track and Trace response: %s", track_and_trace_details)
 
-            colli = track_and_trace_details.get('colli', {}).get(shipment['barcode'], {})
+            colli = track_and_trace_details.get("colli", {}).get(
+                shipment["barcode"], {}
+            )
 
             status_message = "Unknown"
             planned_date = planned_from = planned_to = expected_datetime = None
@@ -598,27 +624,35 @@ class PostNLCoordinator(DataUpdateCoordinator):
             observations: list[dict] = []
 
             if colli:
-                _LOGGER.debug("Colli details found for shipment %s: %s", shipment['key'], colli)
+                _LOGGER.debug(
+                    "Colli details found for shipment %s: %s", shipment["key"], colli
+                )
                 if colli.get("routeInformation"):
                     route_information = colli.get("routeInformation")
                     planned_date = route_information.get("plannedDeliveryTime")
-                    planned_from = route_information.get("plannedDeliveryTimeWindow", {}).get("startDateTime")
-                    planned_to = route_information.get("plannedDeliveryTimeWindow", {}).get('endDateTime')
-                    expected_datetime = route_information.get('expectedDeliveryTime')
-                elif colli.get('eta'):
-                    planned_date = colli.get('eta', {}).get('start')
-                    planned_from = colli.get('eta', {}).get('start')
-                    planned_to = colli.get('eta', {}).get('end')
+                    planned_from = route_information.get(
+                        "plannedDeliveryTimeWindow", {}
+                    ).get("startDateTime")
+                    planned_to = route_information.get(
+                        "plannedDeliveryTimeWindow", {}
+                    ).get("endDateTime")
+                    expected_datetime = route_information.get("expectedDeliveryTime")
+                elif colli.get("eta"):
+                    planned_date = colli.get("eta", {}).get("start")
+                    planned_from = colli.get("eta", {}).get("start")
+                    planned_to = colli.get("eta", {}).get("end")
                 else:
-                    planned_date = shipment.get('deliveryWindowFrom')
-                    planned_from = shipment.get('deliveryWindowFrom')
-                    planned_to = shipment.get('deliveryWindowTo')
+                    planned_date = shipment.get("deliveryWindowFrom")
+                    planned_from = shipment.get("deliveryWindowFrom")
+                    planned_to = shipment.get("deliveryWindowTo")
 
-                status_message = (colli.get('statusPhase') or {}).get('message', "Unknown")
-                recipient_name = (
-                    colli.get('recipient', {}).get('names', {}).get('personName')
+                status_message = (colli.get("statusPhase") or {}).get(
+                    "message", "Unknown"
                 )
-                native_dimensions = (colli.get('details') or {}).get('dimensions')
+                recipient_name = (
+                    colli.get("recipient", {}).get("names", {}).get("personName")
+                )
+                native_dimensions = (colli.get("details") or {}).get("dimensions")
                 # The active T&T call already carries the observation list —
                 # extracted unconditionally so map_parcel_status can prefer
                 # the stable observationCode vocabulary over status_message's
@@ -627,54 +661,64 @@ class PostNLCoordinator(DataUpdateCoordinator):
                 observations = _extract_observations(colli)
                 history = build_history(observations) if self._include_history else None
             else:
-                _LOGGER.debug("Barcode not found in colli details for shipment %s.", shipment['key'])
-                planned_date = shipment.get('deliveryWindowFrom')
-                planned_from = shipment.get('deliveryWindowFrom')
-                planned_to = shipment.get('deliveryWindowTo')
+                _LOGGER.debug(
+                    "Barcode not found in colli details for shipment %s.",
+                    shipment["key"],
+                )
+                planned_date = shipment.get("deliveryWindowFrom")
+                planned_from = shipment.get("deliveryWindowFrom")
+                planned_to = shipment.get("deliveryWindowTo")
 
-            parcel = normalize_parcel({
-                "key": shipment.get('key'),
-                "barcode": shipment.get('barcode'),
-                "name": title,
-                "url": shipment.get('detailsUrl'),
-                "shipment_type": shipment.get('shipmentType'),
-                "receiver_title": receiver_title,
-                # ``recipient.personName`` from Track & Trace is the
-                # authoritative recipient name on the active path;
-                # ``receiverTitle`` is the GraphQL fallback for when T&T
-                # doesn't have it yet (first poll after registration).
-                "receiver": recipient_name or receiver_title,
-                "source_display_name": source_display_name,
-                "status_message": status_message,
-                # Feeds map_parcel_status's observationCode-first status
-                # derivation (parcels.py); empty when there's no colli.
-                "observations": observations,
-                "delivered": shipment.get('delivered'),
-                "delivery_date": shipment.get('deliveredTimeStamp'),
-                "delivery_address_type": shipment.get('deliveryAddressType'),
-                "planned_date": planned_date,
-                "planned_from": planned_from,
-                "planned_to": planned_to,
-                "expected_datetime": expected_datetime,
-                # Native PostNL dimensions (g + mm). Lives on the
-                # intermediate dict so it surfaces under ``raw`` for power
-                # users; ``normalize_parcel`` reads it and produces the
-                # canonical kg + cm + ``text`` shape at the top level.
-                "dimensions": native_dimensions,
-            }, history=history)
-            barcode = shipment.get('barcode')
+            parcel = normalize_parcel(
+                {
+                    "key": shipment.get("key"),
+                    "barcode": shipment.get("barcode"),
+                    "name": title,
+                    "url": shipment.get("detailsUrl"),
+                    "shipment_type": shipment.get("shipmentType"),
+                    "receiver_title": receiver_title,
+                    # ``recipient.personName`` from Track & Trace is the
+                    # authoritative recipient name on the active path;
+                    # ``receiverTitle`` is the GraphQL fallback for when T&T
+                    # doesn't have it yet (first poll after registration).
+                    "receiver": recipient_name or receiver_title,
+                    "source_display_name": source_display_name,
+                    "status_message": status_message,
+                    # Feeds map_parcel_status's observationCode-first status
+                    # derivation (parcels.py); empty when there's no colli.
+                    "observations": observations,
+                    "delivered": shipment.get("delivered"),
+                    "delivery_date": shipment.get("deliveredTimeStamp"),
+                    "delivery_address_type": shipment.get("deliveryAddressType"),
+                    "planned_date": planned_date,
+                    "planned_from": planned_from,
+                    "planned_to": planned_to,
+                    "expected_datetime": expected_datetime,
+                    # Native PostNL dimensions (g + mm). Lives on the
+                    # intermediate dict so it surfaces under ``raw`` for power
+                    # users; ``normalize_parcel`` reads it and produces the
+                    # canonical kg + cm + ``text`` shape at the top level.
+                    "dimensions": native_dimensions,
+                },
+                history=history,
+            )
+            barcode = shipment.get("barcode")
             if barcode and colli:
                 # Only a transform backed by real T&T data is worth reusing
                 # as a fallback on a later transient failure.
                 self._parcel_cache[barcode] = parcel
-            return parcel
         except requests.exceptions.RequestException as exception:
             # Safety net for requests errors outside the targeted T&T catch.
             # Degrade to the last successful transform when we have one; only
             # fail the refresh when there is nothing to show for this parcel.
-            _LOGGER.error("Error fetching Track and Trace details for shipment %s: %s", shipment.get('key'), exception, exc_info=True)
-            barcode = shipment.get('barcode')
+            _LOGGER.exception(
+                "Error fetching Track and Trace details for shipment %s",
+                shipment.get("key"),
+            )
+            barcode = shipment.get("barcode")
             cached = self._parcel_cache.get(barcode) if barcode else None
             if cached is not None:
                 return cached
             raise UpdateFailed("Unable to update PostNL data") from exception
+        else:
+            return parcel

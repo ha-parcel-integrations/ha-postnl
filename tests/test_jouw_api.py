@@ -1,4 +1,5 @@
 """Unit tests for the jouw.postnl.nl API client."""
+
 from unittest.mock import MagicMock
 
 from custom_components.postnl.jouw_api import PostNLJouwAPI

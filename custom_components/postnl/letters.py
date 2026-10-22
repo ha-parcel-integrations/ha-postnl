@@ -6,14 +6,24 @@ caching, events) so it stays trivially unit-testable. Letters are a
 PostNL-specific concept — they have no tracking status or canonical parcel
 shape — so they live here rather than in ``parcels.py``.
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 _DUTCH_MONTHS = {
-    "januari": 1, "februari": 2, "maart": 3, "april": 4,
-    "mei": 5, "juni": 6, "juli": 7, "augustus": 8,
-    "september": 9, "oktober": 10, "november": 11, "december": 12,
+    "januari": 1,
+    "februari": 2,
+    "maart": 3,
+    "april": 4,
+    "mei": 5,
+    "juni": 6,
+    "juli": 7,
+    "augustus": 8,
+    "september": 9,
+    "oktober": 10,
+    "november": 11,
+    "december": 12,
 }
 
 
@@ -36,7 +46,7 @@ def parse_letter_date(title: str, *, today: datetime | None = None) -> str | Non
     month = _DUTCH_MONTHS.get(parts[1])
     if month is None:
         return None
-    now = (today or datetime.now(timezone.utc)).date()
+    now = (today or datetime.now(UTC)).date()
     try:
         candidate = now.replace(month=month, day=day)
     except ValueError:
@@ -58,11 +68,13 @@ def extract_letters(payload: dict, *, today: datetime | None = None) -> list[dic
             if item.get("type") != "Letter":
                 continue
             title = item.get("title")
-            letters.append({
-                "id": item.get("editId"),
-                "title": title,
-                "date": parse_letter_date(title, today=today),
-                "unread": bool(item.get("isUnread")),
-                "image_url": (item.get("image") or {}).get("url"),
-            })
+            letters.append(
+                {
+                    "id": item.get("editId"),
+                    "title": title,
+                    "date": parse_letter_date(title, today=today),
+                    "unread": bool(item.get("isUnread")),
+                    "image_url": (item.get("image") or {}).get("url"),
+                }
+            )
     return letters

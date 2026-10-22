@@ -27,9 +27,7 @@ KNOWN_CAPABILITIES = frozenset(
 # weight, dimensions, delivery window, url, and history are all populated;
 # pickup_point is the one gap, hard-coded None even though "pickup"
 # (delivery_address_type == "ServicePoint") is detected.
-CAPABILITIES = frozenset(
-    {"weight", "dimensions", "delivery_window", "url", "history"}
-)
+CAPABILITIES = frozenset({"weight", "dimensions", "delivery_window", "url", "history"})
 
 CONF_DELIVERED_FILTER_TYPE = "delivered_filter_type"
 CONF_DELIVERED_FILTER_AMOUNT = "delivered_filter_amount"

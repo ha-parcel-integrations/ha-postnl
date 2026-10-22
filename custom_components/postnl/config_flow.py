@@ -4,12 +4,11 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Mapping
+import logging
 from typing import Any
 
 import aiohttp
-import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -20,6 +19,7 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
+import voluptuous as vol
 
 from .auth import PostNLAuth, PostNLAuthError
 from .const import (
@@ -34,10 +34,12 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-_USER_SCHEMA = vol.Schema({
-    vol.Required(CONF_USERNAME): str,
-    vol.Required(CONF_PASSWORD): str,
-})
+_USER_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_USERNAME): str,
+        vol.Required(CONF_PASSWORD): str,
+    }
+)
 
 _FILTER_TYPE_SELECTOR = selector.SelectSelector(
     selector.SelectSelectorConfig(
@@ -56,14 +58,16 @@ _FILTER_AMOUNT_SELECTOR = selector.NumberSelector(
     )
 )
 
-_DELIVERED_SCHEMA = vol.Schema({
-    vol.Required(
-        CONF_DELIVERED_FILTER_TYPE, default=DEFAULT_DELIVERED_FILTER_TYPE
-    ): _FILTER_TYPE_SELECTOR,
-    vol.Required(
-        CONF_DELIVERED_FILTER_AMOUNT, default=DEFAULT_DELIVERED_FILTER_AMOUNT
-    ): _FILTER_AMOUNT_SELECTOR,
-})
+_DELIVERED_SCHEMA = vol.Schema(
+    {
+        vol.Required(
+            CONF_DELIVERED_FILTER_TYPE, default=DEFAULT_DELIVERED_FILTER_TYPE
+        ): _FILTER_TYPE_SELECTOR,
+        vol.Required(
+            CONF_DELIVERED_FILTER_AMOUNT, default=DEFAULT_DELIVERED_FILTER_AMOUNT
+        ): _FILTER_AMOUNT_SELECTOR,
+    }
+)
 
 
 class PostNLConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -83,7 +87,9 @@ class PostNLConfigFlow(ConfigFlow, domain=DOMAIN):
         """Return the options flow handler."""
         return PostNLOptionsFlowHandler()
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle the initial step."""
         errors: dict[str, str] = {}
 
@@ -128,11 +134,15 @@ class PostNLConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=_DELIVERED_SCHEMA,
         )
 
-    async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> ConfigFlowResult:
         """Handle reauthentication on an auth error."""
         return await self.async_step_reauth_confirm()
 
-    async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle the reauth confirmation step."""
         errors: dict[str, str] = {}
 
@@ -167,13 +177,13 @@ class PostNLConfigFlow(ConfigFlow, domain=DOMAIN):
                 user_input[CONF_USERNAME],
                 user_input[CONF_PASSWORD],
             ).async_login()
-            return token, {}
         except PostNLAuthError as err:
             _LOGGER.debug("PostNL login failed: %s", err)
             return None, {"base": "invalid_auth"}
         except aiohttp.ClientError as err:
             _LOGGER.debug("PostNL connection error: %s", err)
             return None, {"base": "cannot_connect"}
+        return token, {}
 
 
 class PostNLOptionsFlowHandler(OptionsFlow):

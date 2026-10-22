@@ -1,4 +1,5 @@
 """Button platform for the PostNL integration."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -13,8 +14,6 @@ from .device import ATTRIBUTION, build_device_info
 # A manual refresh is a single API round-trip; HA's per-entity throttling
 # adds nothing here.
 PARALLEL_UPDATES = 0
-
-
 
 
 async def async_setup_entry(

@@ -10,6 +10,7 @@ coordinator and image tests.
 Every helper returns a **fresh** dict, so a test may mutate what it gets back
 without leaking into the next one.
 """
+
 from __future__ import annotations
 
 BARCODE = "3SABC"
@@ -18,10 +19,26 @@ BARCODE = "3SABC"
 def observations() -> list[dict]:
     """``analyticsInfo.allObservations`` — PostNL's own event timeline."""
     return [
-        {"observationDate": "2026-05-21T14:41:45.943+02:00", "observationCode": "A01", "description": "Pakket is nog niet ontvangen"},
-        {"observationDate": "2026-05-21T20:22:11+02:00", "observationCode": "B01", "description": "Pakket is ontvangen door PostNL"},
-        {"observationDate": "2026-05-22T10:06:45+02:00", "observationCode": "J01", "description": "Zending is gesorteerd"},
-        {"observationDate": "2026-05-22T11:01:21+02:00", "observationCode": "J05", "description": "Bezorger is onderweg"},
+        {
+            "observationDate": "2026-05-21T14:41:45.943+02:00",
+            "observationCode": "A01",
+            "description": "Pakket is nog niet ontvangen",
+        },
+        {
+            "observationDate": "2026-05-21T20:22:11+02:00",
+            "observationCode": "B01",
+            "description": "Pakket is ontvangen door PostNL",
+        },
+        {
+            "observationDate": "2026-05-22T10:06:45+02:00",
+            "observationCode": "J01",
+            "description": "Zending is gesorteerd",
+        },
+        {
+            "observationDate": "2026-05-22T11:01:21+02:00",
+            "observationCode": "J05",
+            "description": "Bezorger is onderweg",
+        },
     ]
 
 

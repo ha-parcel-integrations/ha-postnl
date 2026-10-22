@@ -4,15 +4,20 @@ The transport is mocked so we never hit the network. We just verify
 that profile() / shipments() build a GraphQL document and delegate to
 the client's `execute` method, and that call() is the same one-liner.
 """
+
 from unittest.mock import MagicMock, patch
 
 from custom_components.postnl.graphql import PostNLGraphql
 
 
 def test_init_configures_transport_with_bearer_token():
-    with patch("custom_components.postnl.graphql.RequestsHTTPTransport") as transport_cls:
-        with patch("custom_components.postnl.graphql.Client") as client_cls:
-            PostNLGraphql("mytok")
+    with (
+        patch(
+            "custom_components.postnl.graphql.RequestsHTTPTransport"
+        ) as transport_cls,
+        patch("custom_components.postnl.graphql.Client") as client_cls,
+    ):
+        PostNLGraphql("mytok")
 
     transport_cls.assert_called_once()
     headers = transport_cls.call_args.kwargs["headers"]

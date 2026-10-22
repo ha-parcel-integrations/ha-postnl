@@ -1,8 +1,10 @@
 """Tests for the PostNL refresh button."""
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.helpers import entity_registry as er
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.postnl.const import DOMAIN
 
@@ -19,8 +21,6 @@ _USERINFO = {"account_id": "abc-123", "email": "user@example.com"}
 
 
 def _add_entry(hass):
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
     entry = MockConfigEntry(
         domain=DOMAIN,
         unique_id=_ENTRY_DATA[CONF_USERNAME].lower(),

@@ -1,38 +1,244 @@
-# Ruff configuration — mirrors Home Assistant's PEP 8 + PEP 257 enforcement.
-# Home Assistant applies strict pycodestyle (PEP 8) and pydocstyle (PEP 257)
-# checks to all submitted code; the suite follows the same ruleset and the same
-# ignores (see Home Assistant core's pyproject.toml).
-# https://developers.home-assistant.io/docs/development_guidelines
-line-length = 88
+# Ruff configuration — Home Assistant core's own ruleset (pyproject.toml on
+# the dev branch, ruff 0.17.0), adapted only where core assumes a newer Home
+# Assistant than this integration supports:
+# - target-version stays at the oldest Python a supported Home Assistant runs.
+# - banned-api drops entries whose replacements (probatio, httpx2, Python
+#   3.14-only annotations) don't exist on older Home Assistant releases.
+# - tests may import from tests, skip docstrings and reach private members.
+# - parent-relative imports are allowed inside the integration's subpackages,
+#   as core allows them inside homeassistant/components/<domain>/.
+
 target-version = "py312"
 
 [lint]
-# pydocstyle (D) + pycodestyle errors/warnings (E/W) + pyflakes (F) + isort (I).
-select = ["D", "E", "F", "W", "I"]
+select = [
+    "A001",
+    "ASYNC",
+    "B",
+    "BLE",
+    "C",
+    "COM818",
+    "D",
+    "DTZ003",
+    "DTZ004",
+    "DTZ011",
+    "E",
+    "F",
+    "F541",
+    "FLY",
+    "FURB",
+    "G",
+    "I",
+    "INP",
+    "ISC",
+    "ICN001",
+    "ICN002",
+    "LOG",
+    "N804",
+    "N805",
+    "N806",
+    "N815",
+    "PERF",
+    "PGH",
+    "PIE",
+    "PL",
+    "PT",
+    "PTH",
+    "PYI",
+    "RET",
+    "RSE",
+    "RUF",
+    "S107",
+    "S102",
+    "S103",
+    "S108",
+    "S301",
+    "S306",
+    "S307",
+    "S313",
+    "S314",
+    "S315",
+    "S316",
+    "S317",
+    "S318",
+    "S319",
+    "S601",
+    "S602",
+    "S604",
+    "S608",
+    "S609",
+    "SIM",
+    "SLF",
+    "SLOT",
+    "T100",
+    "T20",
+    "TC",
+    "TID",
+    "TRY",
+    "UP",
+    "UP031",
+    "UP032",
+    "W",
+]
 ignore = [
-    # Home Assistant's pydocstyle ignores (conflicting / non-required rules).
-    "D202",  # no blank lines allowed after function docstring
-    "D203",  # conflicts with D211 (no blank line before a class docstring)
-    "D213",  # conflicts with D212 (summary on the first physical line)
-    "D406",  # section name should end with a newline (Google style, unused)
-    "D407",  # missing dashed underline after section (Google style, unused)
-    "D417",  # missing argument descriptions in the docstring
-    # Line length and indentation are the formatter's job, per Home Assistant.
-    "E501",  # line too long
-    "E111", "E114", "E117", "W191", "D206", "D300",
+    "ASYNC109",
+    "ASYNC110",
+    "ASYNC240",
+    "B008",
+    "B019",
+    "D202",
+    "D203",
+    "D213",
+    "D406",
+    "D407",
+    "D417",
+    "E501",
+    "PLC1901",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "PLR0917",
+    "PLR2004",
+    "PLW0108",
+    "PLW1641",
+    "PLW2901",
+    "PT011",
+    "PT018",
+    "RUF001",
+    "RUF012",
+    "RUF015",
+    "RUF043",
+    "SIM102",
+    "SIM103",
+    "SIM108",
+    "SIM115",
+    "TC001",
+    "TC002",
+    "TC003",
+    "TC006",
+    "TRY003",
+    "TRY400",
+    "UP047",
+    "UP049",
+    "W191",
+    "E111",
+    "E114",
+    "E117",
+    "D206",
+    "D300",
+    "Q",
+    "COM812",
+    "COM819",
+    "PLE0605",
+    "FURB116",
+    "ISC004",
+    "LOG004",
 ]
 
+[lint.flake8-import-conventions.extend-aliases]
+"homeassistant.components.air_quality.PLATFORM_SCHEMA" = "AIR_QUALITY_PLATFORM_SCHEMA"
+"homeassistant.components.alarm_control_panel.PLATFORM_SCHEMA" = "ALARM_CONTROL_PANEL_PLATFORM_SCHEMA"
+"homeassistant.components.binary_sensor.PLATFORM_SCHEMA" = "BINARY_SENSOR_PLATFORM_SCHEMA"
+"homeassistant.components.button.PLATFORM_SCHEMA" = "BUTTON_PLATFORM_SCHEMA"
+"homeassistant.components.calendar.PLATFORM_SCHEMA" = "CALENDAR_PLATFORM_SCHEMA"
+"homeassistant.components.camera.PLATFORM_SCHEMA" = "CAMERA_PLATFORM_SCHEMA"
+"homeassistant.components.climate.PLATFORM_SCHEMA" = "CLIMATE_PLATFORM_SCHEMA"
+"homeassistant.components.conversation.PLATFORM_SCHEMA" = "CONVERSATION_PLATFORM_SCHEMA"
+"homeassistant.components.cover.PLATFORM_SCHEMA" = "COVER_PLATFORM_SCHEMA"
+"homeassistant.components.date.PLATFORM_SCHEMA" = "DATE_PLATFORM_SCHEMA"
+"homeassistant.components.datetime.PLATFORM_SCHEMA" = "DATETIME_PLATFORM_SCHEMA"
+"homeassistant.components.device_tracker.PLATFORM_SCHEMA" = "DEVICE_TRACKER_PLATFORM_SCHEMA"
+"homeassistant.components.event.PLATFORM_SCHEMA" = "EVENT_PLATFORM_SCHEMA"
+"homeassistant.components.fan.PLATFORM_SCHEMA" = "FAN_PLATFORM_SCHEMA"
+"homeassistant.components.geo_location.PLATFORM_SCHEMA" = "GEO_LOCATION_PLATFORM_SCHEMA"
+"homeassistant.components.humidifier.PLATFORM_SCHEMA" = "HUMIDIFIER_PLATFORM_SCHEMA"
+"homeassistant.components.image.PLATFORM_SCHEMA" = "IMAGE_PLATFORM_SCHEMA"
+"homeassistant.components.image_processing.PLATFORM_SCHEMA" = "IMAGE_PROCESSING_PLATFORM_SCHEMA"
+"homeassistant.components.lawn_mower.PLATFORM_SCHEMA" = "LAWN_MOWER_PLATFORM_SCHEMA"
+"homeassistant.components.light.PLATFORM_SCHEMA" = "LIGHT_PLATFORM_SCHEMA"
+"homeassistant.components.lock.PLATFORM_SCHEMA" = "LOCK_PLATFORM_SCHEMA"
+"homeassistant.components.media_player.PLATFORM_SCHEMA" = "MEDIA_PLAYER_PLATFORM_SCHEMA"
+"homeassistant.components.notify.PLATFORM_SCHEMA" = "NOTIFY_PLATFORM_SCHEMA"
+"homeassistant.components.number.PLATFORM_SCHEMA" = "NUMBER_PLATFORM_SCHEMA"
+"homeassistant.components.remote.PLATFORM_SCHEMA" = "REMOTE_PLATFORM_SCHEMA"
+"homeassistant.components.scene.PLATFORM_SCHEMA" = "SCENE_PLATFORM_SCHEMA"
+"homeassistant.components.select.PLATFORM_SCHEMA" = "SELECT_PLATFORM_SCHEMA"
+"homeassistant.components.sensor.PLATFORM_SCHEMA" = "SENSOR_PLATFORM_SCHEMA"
+"homeassistant.components.siren.PLATFORM_SCHEMA" = "SIREN_PLATFORM_SCHEMA"
+"homeassistant.components.stt.PLATFORM_SCHEMA" = "STT_PLATFORM_SCHEMA"
+"homeassistant.components.switch.PLATFORM_SCHEMA" = "SWITCH_PLATFORM_SCHEMA"
+"homeassistant.components.text.PLATFORM_SCHEMA" = "TEXT_PLATFORM_SCHEMA"
+"homeassistant.components.time.PLATFORM_SCHEMA" = "TIME_PLATFORM_SCHEMA"
+"homeassistant.components.todo.PLATFORM_SCHEMA" = "TODO_PLATFORM_SCHEMA"
+"homeassistant.components.tts.PLATFORM_SCHEMA" = "TTS_PLATFORM_SCHEMA"
+"homeassistant.components.vacuum.PLATFORM_SCHEMA" = "VACUUM_PLATFORM_SCHEMA"
+"homeassistant.components.valve.PLATFORM_SCHEMA" = "VALVE_PLATFORM_SCHEMA"
+"homeassistant.components.update.PLATFORM_SCHEMA" = "UPDATE_PLATFORM_SCHEMA"
+"homeassistant.components.wake_word.PLATFORM_SCHEMA" = "WAKE_WORD_PLATFORM_SCHEMA"
+"homeassistant.components.water_heater.PLATFORM_SCHEMA" = "WATER_HEATER_PLATFORM_SCHEMA"
+"homeassistant.components.weather.PLATFORM_SCHEMA" = "WEATHER_PLATFORM_SCHEMA"
+"homeassistant.core.DOMAIN" = "HOMEASSISTANT_DOMAIN"
+"homeassistant.helpers.area_registry" = "ar"
+"homeassistant.helpers.category_registry" = "cr"
+"homeassistant.helpers.config_validation" = "cv"
+"homeassistant.helpers.device_registry" = "dr"
+"homeassistant.helpers.entity_registry" = "er"
+"homeassistant.helpers.floor_registry" = "fr"
+"homeassistant.helpers.issue_registry" = "ir"
+"homeassistant.helpers.label_registry" = "lr"
+"homeassistant.util.color" = "color_util"
+"homeassistant.util.dt" = "dt_util"
+"homeassistant.util.json" = "json_util"
+"homeassistant.util.location" = "location_util"
+"homeassistant.util.logging" = "logging_util"
+"homeassistant.util.network" = "network_util"
+"homeassistant.util.ulid" = "ulid_util"
+"homeassistant.util.uuid" = "uuid_util"
+"homeassistant.util.yaml" = "yaml_util"
+
+[lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+
+[lint.flake8-tidy-imports.banned-api.async_timeout]
+msg = "use asyncio.timeout instead"
+
+[lint.flake8-tidy-imports.banned-api.pytz]
+msg = "use zoneinfo instead"
+
 [lint.isort]
-# The integration package is first-party, so its imports group on their own.
-known-first-party = ["custom_components"]
+force-sort-within-sections = true
+known-first-party = [
+    "custom_components",
+]
+combine-as-imports = true
+split-on-trailing-comma = false
 
 [lint.per-file-ignores]
-# Tests don't need docstrings (PEP 257 / D rules); everything else stays on.
-# A common HACS pragmatism — Home Assistant core does document its tests.
-"tests/**" = ["D"]
-# Tooling scripts (and their tests) are exempt from docstrings too. Carrier
-# repos have no scripts/ dir, so this is a no-op there; the template does.
-"scripts/**" = ["D"]
-# Variant overlays are template-only (bootstrap.py resolves them into a carrier
-# where their tests land under tests/). Their overlay tests are D-exempt too.
-"variants/**/tests/**" = ["D"]
+"custom_components/*/*/*" = [
+    "TID252",
+]
+"tests/**" = [
+    "D",
+    "SLF001",
+]
+"scripts/**" = [
+    "D",
+    "INP001",
+    "T20",
+]
+"variants/**/tests/**" = [
+    "D",
+    "INP001",
+    "SLF001",
+]
+
+[lint.mccabe]
+max-complexity = 25
+
+[lint.pydocstyle]
+convention = "google"
+property-decorators = [
+    "propcache.api.cached_property",
+]

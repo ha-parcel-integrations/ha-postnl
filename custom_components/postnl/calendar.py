@@ -1,4 +1,5 @@
 """Calendar platform for the PostNL integration."""
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta
@@ -21,8 +22,6 @@ PARALLEL_UPDATES = 0
 _DEFAULT_EVENT_DURATION = timedelta(hours=1)
 
 
-
-
 def _parse(value: str | None) -> datetime | None:
     """Parse an ISO 8601 string into a timezone-aware datetime, or ``None``."""
     if not value:
@@ -42,14 +41,10 @@ async def async_setup_entry(
 ) -> None:
     """Set up the PostNL deliveries calendar from a config entry."""
     data = entry.runtime_data
-    async_add_entities(
-        [PostNLDeliveriesCalendar(data.coordinator, data.userinfo)]
-    )
+    async_add_entities([PostNLDeliveriesCalendar(data.coordinator, data.userinfo)])
 
 
-class PostNLDeliveriesCalendar(
-    CoordinatorEntity[PostNLCoordinator], CalendarEntity
-):
+class PostNLDeliveriesCalendar(CoordinatorEntity[PostNLCoordinator], CalendarEntity):
     """A read-only calendar of expected PostNL deliveries.
 
     Each active incoming parcel with a known delivery moment becomes an

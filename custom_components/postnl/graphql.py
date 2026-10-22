@@ -18,15 +18,15 @@ class PostNLGraphql:
 
     def __init__(self, access_token: str):
         """Initialize the PostNLGraphql."""
-        self.client = Client(transport=RequestsHTTPTransport(
-            url=self.endpoint,
-            verify=True,
-            retries=3,
-            timeout=60,
-            headers={
-                'Authorization': 'Bearer ' + access_token
-            }
-        ))
+        self.client = Client(
+            transport=RequestsHTTPTransport(
+                url=self.endpoint,
+                verify=True,
+                retries=3,
+                timeout=60,
+                headers={"Authorization": "Bearer " + access_token},
+            )
+        )
 
     def call(self, query: str):
         """Execute the request and return the parsed response."""
@@ -36,7 +36,7 @@ class PostNLGraphql:
 
     def profile(self):
         """Return the authenticated user's profile."""
-        _LOGGER.debug('Fetching profile')
+        _LOGGER.debug("Fetching profile")
         query = """
             query {
               profile {
@@ -51,13 +51,11 @@ class PostNLGraphql:
             }
         """
 
-        result = self.call(query)
-
-        return result
+        return self.call(query)
 
     def shipments(self):
         """Return the tracked shipments."""
-        _LOGGER.debug('Fetching shipments')
+        _LOGGER.debug("Fetching shipments")
 
         query = """
         query {
@@ -93,6 +91,4 @@ class PostNLGraphql:
         }
         """
 
-        result = self.call(query)
-
-        return result
+        return self.call(query)
