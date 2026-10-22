@@ -55,7 +55,11 @@ Based upon the original work by [@arjenbos](https://github.com/arjenbos/ha-postn
 
 1. Open HACS and search for **PostNL**
 2. Install it
-3. Restart Home Assistant
+3. Restart Home Assistant if HACS asks you to
+
+Or click the button below to open it directly in HACS:
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ha-parcel-integrations&repository=ha-postnl&category=integration)
 
 ### Manual
 
@@ -63,6 +67,10 @@ Based upon the original work by [@arjenbos](https://github.com/arjenbos/ha-postn
 2. Restart Home Assistant
 
 ## Configuration
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=postnl)
+
+Or set it up by hand:
 
 1. Go to **Settings → Devices & Services → Add Integration**
 2. Search for **PostNL**
