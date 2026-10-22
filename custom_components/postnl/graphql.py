@@ -30,9 +30,7 @@ class PostNLGraphql:
 
     def call(self, query: str):
         """Execute the request and return the parsed response."""
-        query = gql(query)
-
-        return self.client.execute(query)
+        return self.client.execute(gql(query))
 
     def profile(self):
         """Return the authenticated user's profile."""

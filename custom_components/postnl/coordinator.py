@@ -112,6 +112,7 @@ def _next_update_interval(now: datetime, tier_minutes: int, entry_id: str) -> ti
 class PostNLCoordinator(DataUpdateCoordinator):
     """Coordinator for the postnl integration."""
 
+    config_entry: ConfigEntry
     data: dict[str, list[dict]]
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -228,13 +229,14 @@ class PostNLCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("Starting data update for PostNL.")
         try:
             _LOGGER.debug("Authenticating with PostNL API.")
-            await self.async_get_jouw_api()
+            jouw_api = await self.async_get_jouw_api()
+            graphq_api = self.graphq_api
+            if graphq_api is None:
+                raise UpdateFailed("PostNL GraphQL client is not initialised")
 
             data: dict[str, list[dict]] = {"receiver": [], "sender": []}
 
-            shipments = await self.hass.async_add_executor_job(
-                self.graphq_api.shipments
-            )
+            shipments = await self.hass.async_add_executor_job(graphq_api.shipments)
 
             _LOGGER.debug("Shipments fetched: %s", shipments)
             receiver_shipments = [
@@ -306,7 +308,7 @@ class PostNLCoordinator(DataUpdateCoordinator):
 
             try:
                 letters_payload = await self.hass.async_add_executor_job(
-                    self.jouw_api.letters
+                    jouw_api.letters
                 )
                 self.letters = extract_letters(letters_payload)
                 self._fire_letter_events(self.letters)
@@ -513,8 +515,11 @@ class PostNLCoordinator(DataUpdateCoordinator):
         barcode = shipment.get("barcode")
         if barcode and barcode in self._delivered_history_cache:
             return self._delivered_history_cache[barcode]
+        jouw_api = self.jouw_api
+        if jouw_api is None:
+            return None
         try:
-            details = self.jouw_api.track_and_trace(shipment["key"])
+            details = jouw_api.track_and_trace(shipment["key"])
         except requests.exceptions.RequestException as exception:
             _LOGGER.warning(
                 "History fetch failed for delivered shipment %s: %s",
@@ -584,9 +589,12 @@ class PostNLCoordinator(DataUpdateCoordinator):
             _LOGGER.debug(
                 "Fetching Track and Trace details for shipment %s.", shipment["key"]
             )
+            jouw_api = self.jouw_api
+            if jouw_api is None:
+                raise UpdateFailed("PostNL API client is not initialised")
             try:
                 track_and_trace_details = await self.hass.async_add_executor_job(
-                    self.jouw_api.track_and_trace, shipment["key"]
+                    jouw_api.track_and_trace, shipment["key"]
                 )
             except requests.exceptions.RequestException as exception:
                 # One broken T&T call must not fail the whole refresh. Degrade
@@ -620,7 +628,7 @@ class PostNLCoordinator(DataUpdateCoordinator):
             planned_date = planned_from = planned_to = expected_datetime = None
             recipient_name: str | None = None
             native_dimensions: dict | None = None
-            history: list[dict] | None = None
+            history = None
             observations: list[dict] = []
 
             if colli:

@@ -277,7 +277,7 @@ class PostNLAuth:
         return verifier, challenge
 
     @staticmethod
-    def _csrf_from_jar(jar: aiohttp.CookieJar) -> str | None:
+    def _csrf_from_jar(jar: aiohttp.abc.AbstractCookieJar) -> str | None:
         for cookie in jar:
             if cookie.key == "_csrf_token":
                 return cookie.value
