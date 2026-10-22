@@ -6,6 +6,7 @@ import logging
 
 import requests
 from requests.adapters import HTTPAdapter
+from requests.structures import CaseInsensitiveDict
 from urllib3 import Retry
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,7 +46,9 @@ class PostNLJouwAPI:
                 pool_block=True,
             ),
         )
-        self.client.headers = {"Authorization": "Bearer " + access_token}
+        self.client.headers = CaseInsensitiveDict(
+            {"Authorization": "Bearer " + access_token}
+        )
 
     def track_and_trace(self, key):
         """Return track & trace details for a shipment."""

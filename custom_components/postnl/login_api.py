@@ -6,6 +6,7 @@ import logging
 
 import requests
 from requests.adapters import HTTPAdapter
+from requests.structures import CaseInsensitiveDict
 from urllib3 import Retry
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,7 +24,9 @@ class PostNLLoginAPI:
             prefix="https://",
             adapter=HTTPAdapter(max_retries=Retry(total=5, backoff_factor=3)),
         )
-        self.client.headers = {"Authorization": "Bearer " + access_token}
+        self.client.headers = CaseInsensitiveDict(
+            {"Authorization": "Bearer " + access_token}
+        )
 
     def userinfo(self):
         """Return the authenticated user's info."""
