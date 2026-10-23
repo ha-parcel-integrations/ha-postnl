@@ -109,8 +109,10 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     "G03": ParcelStatus.IN_TRANSIT,  # door drukte duurt de bezorging wat langer (delay)
     "G05": ParcelStatus.IN_TRANSIT,  # bezorgmoment bijgewerkt (delay)
     "K01": ParcelStatus.IN_TRANSIT,  # sorry, bezorgmoment is bijgewerkt (delay, variant of G01/G05/T04)
+    "J14": ParcelStatus.IN_TRANSIT,  # sorry, bezorgmoment is bijgewerkt (variant of K01)
     "K70": ParcelStatus.IN_TRANSIT,  # bezorging niet gelukt, pakket gaat naar PostNL-punt
     "T04": ParcelStatus.IN_TRANSIT,  # bezorgmoment bijgewerkt (delay)
+    "T02": ParcelStatus.IN_TRANSIT,  # sorry, bezorgmoment is bijgewerkt (variant of K01)
     "V06": ParcelStatus.IN_TRANSIT,  # door drukte duurt de bezorging wat langer (variant of G03)
     # --- Returning to the sender ---
     "H04": ParcelStatus.RETURNING,  # pakket is beschadigd, gaat retour afzender
@@ -126,6 +128,7 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     "I01": ParcelStatus.DELIVERED,  # pakket is bezorgd
     "I02": ParcelStatus.DELIVERED,  # afgehaald bij PostNL-punt
     "I05": ParcelStatus.DELIVERED,  # bezorgd in de brievenbus
+    "I10": ParcelStatus.DELIVERED,  # pakket is bezorgd bij de buren
     "I11": ParcelStatus.DELIVERED,  # zending is bezorgd in de brievenbus (variant of I05)
     "I12": ParcelStatus.DELIVERED,  # zending is bezorgd op de afgesproken plek (variant of I01)
     "Z01": ParcelStatus.DELIVERED,  # yes! Je zending is bezorgd bij de ontvanger
@@ -157,6 +160,7 @@ _OBSERVATION_META_CODES: frozenset[str] = frozenset(
         "K33",  # "leeg" placeholder
         "K50",  # RCS melding (notification)
         "P21",  # zending kan niet in brievenbus (delivery method changes, parcel does not move)
+        "P02",  # "leeg" placeholder (variant of K33)
     }
 )
 

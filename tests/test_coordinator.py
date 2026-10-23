@@ -1727,6 +1727,24 @@ def test_map_observation_status_damaged_returns_to_sender_2026_10_19(caplog):
     assert "issues/new" not in caplog.text
 
 
+def test_map_observation_status_neighbours_and_delay_2026_10_22(caplog):
+    """I10 / T02 / J14 / P02 reported as unknown (issue #40)."""
+    assert (
+        map_observation_status("I10", "Pakket is bezorgd bij de buren")
+        == ParcelStatus.DELIVERED
+    )
+    # "Sorry, bezorgmoment is bijgewerkt" — variants of K01.
+    for code in ("T02", "J14"):
+        assert (
+            map_observation_status(code, "Sorry, bezorgmoment is bijgewerkt")
+            == ParcelStatus.IN_TRANSIT
+        ), code
+    # "Leeg" placeholder — variant of K33.
+    assert map_observation_status("P02", "leeg") is None
+    assert "P02" in _OBSERVATION_META_CODES
+    assert "issues/new" not in caplog.text
+
+
 def test_map_observation_status_meta_codes_are_silent_null(caplog):
     """Notification/admin codes are known → no movement status, no warning."""
     for code in (
@@ -1746,6 +1764,7 @@ def test_map_observation_status_meta_codes_are_silent_null(caplog):
         "J09",
         "K33",
         "K50",
+        "P02",
     ):
         assert map_observation_status(code, "some text") is None, code
     assert "issues/new" not in caplog.text  # meta codes must not warn
