@@ -2299,3 +2299,21 @@ def test_capabilities_are_known_values():
 def test_capabilities_omit_pickup_point():
     """PostNL never names the actual service point — pickup_point stays None."""
     assert "pickup_point" not in CAPABILITIES
+
+
+async def test_failed_poll_drops_the_overnight_interval(hass):
+    coordinator = PostNLCoordinator(hass, _polling_entry(hass, {}))
+    coordinator.update_interval = timedelta(hours=5, minutes=40)
+
+    noon = datetime(2026, 1, 15, 12, tzinfo=UTC)
+    with (
+        patch.object(coordinator, "_async_poll", side_effect=TimeoutError),
+        patch("custom_components.postnl.coordinator.dt_util.now", return_value=noon),
+        pytest.raises(TimeoutError),
+    ):
+        await coordinator._async_update_data()
+
+    assert coordinator.update_interval is not None
+    assert coordinator.update_interval <= timedelta(
+        minutes=MID_INTERVAL_MINUTES + STAGGER_MINUTES
+    )

@@ -226,6 +226,23 @@ class PostNLCoordinator(DataUpdateCoordinator):
         return self.jouw_api
 
     async def _async_update_data(self) -> dict[str, list[dict]]:
+        try:
+            return await self._async_poll()
+        except Exception:
+            # The base class keeps the last interval after a failure, which
+            # after an overnight poll is the whole quiet window.
+            now = dt_util.now()
+            receiver = (self.data or {}).get("receiver", [])
+            self.update_interval = _next_update_interval(
+                now,
+                _hottest_tier_minutes(
+                    [p for p in receiver if not p.get("delivered")], now
+                ),
+                self.config_entry.entry_id,
+            )
+            raise
+
+    async def _async_poll(self) -> dict[str, list[dict]]:
         _LOGGER.debug("Starting data update for PostNL.")
         try:
             _LOGGER.debug("Authenticating with PostNL API.")
