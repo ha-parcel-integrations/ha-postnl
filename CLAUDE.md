@@ -2,7 +2,7 @@
 
 Home Assistant custom integration for PostNL parcel tracking **plus MyMail
 letters and per-letter image entities**. Distributed via HACS; not part of HA
-core. **Silver** quality tier, minimum HA `2024.12.0`. A **fork** of
+core. **Silver** quality tier, minimum HA `2025.12.0`. A **fork** of
 `arjenbos/ha-postnl`. Three APIs behind one bearer token.
 
 Three places hold the knowledge, and they do not overlap:
