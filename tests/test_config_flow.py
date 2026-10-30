@@ -1,9 +1,9 @@
 """Tests for the PostNL config flow."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
-from homeassistant.config_entries import SOURCE_USER
+from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -267,3 +267,69 @@ async def test_options_flow_ignores_a_legacy_refresh_interval_option(hass):
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert "refresh_interval" not in result["data"]
+
+
+async def test_options_flow_reloads_with_the_new_options(hass):
+    """The reload starts after the options are saved, not before."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id=_USER_INPUT[CONF_USERNAME].lower(),
+        data={**_USER_INPUT, "token": _TOKEN},
+        options={CONF_DELIVERED_FILTER_TYPE: "days", CONF_DELIVERED_FILTER_AMOUNT: 7},
+    )
+    entry.add_to_hass(hass)
+    seen = []
+    real_schedule = hass.config_entries.async_schedule_reload
+
+    def record(entry_id):
+        seen.append(dict(entry.options))
+        return real_schedule(entry_id)
+
+    with (
+        patch(
+            "custom_components.postnl.AsyncConfigEntryAuth.check_and_refresh_token",
+            new=AsyncMock(return_value="tok"),
+        ),
+        patch(
+            "custom_components.postnl.PostNLLoginAPI.userinfo",
+            new=MagicMock(return_value={"account_id": "abc-123"}),
+        ),
+        patch(
+            "custom_components.postnl.coordinator.PostNLGraphql.shipments",
+            new=MagicMock(
+                return_value={
+                    "trackedShipments": {"receiverShipments": [], "senderShipments": []}
+                }
+            ),
+        ),
+        patch(
+            "custom_components.postnl.coordinator.PostNLJouwAPI.letters",
+            new=MagicMock(return_value={"screen": {"sections": []}}),
+        ),
+        patch.object(hass.config_entries, "async_schedule_reload", side_effect=record),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                "delivered": {
+                    CONF_DELIVERED_FILTER_TYPE: "parcels",
+                    CONF_DELIVERED_FILTER_AMOUNT: 21,
+                },
+                "history": {CONF_INCLUDE_HISTORY: True},
+            },
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert seen == [
+        {
+            CONF_DELIVERED_FILTER_TYPE: "parcels",
+            CONF_DELIVERED_FILTER_AMOUNT: 21,
+            CONF_INCLUDE_HISTORY: True,
+        }
+    ]
+    assert entry.state is ConfigEntryState.LOADED

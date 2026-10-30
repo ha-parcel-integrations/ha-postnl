@@ -111,8 +111,10 @@ an `{account_id}_*` unique_id as a barcode, else it deletes the refresh button
 `{account_id}_*` sensor **must** stay in `non_parcel_unique_ids`. Per-parcel
 sensors are removed by the summary sensor (self-remove raced and left ghosts).
 
-**Options flow** has no `entry.add_update_listener` — `async_schedule_reload` on
-submit. Two sections left, `delivered` and `history`.
+**Options flow** is an `OptionsFlowWithReload` and has no
+`entry.add_update_listener` (the two may not be combined). Don't call
+`async_schedule_reload` from the submit instead: that reload starts before the
+new options are saved. Two sections left, `delivered` and `history`.
 
 **Polling cadence is not configurable — don't add the option back.** The
 Section 2.2 account-based algorithm always runs: `_async_update_data` recomputes
