@@ -1,6 +1,7 @@
 {
   "domain": "postnl",
   "name": "PostNL",
+  "categories": ["productivity_information"],
   "codeowners": ["@peter-mdf"],
   "config_flow": true,
   "documentation": "https://github.com/ha-parcel-integrations/ha-postnl",
