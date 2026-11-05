@@ -1676,6 +1676,11 @@ def test_map_observation_status_received_by_postnl_variant_2026_09_18():
     assert map_observation_status("C02") == ParcelStatus.IN_TRANSIT
 
 
+def test_map_observation_status_collected_by_postnl_2026_11_05():
+    """C01 reported as unknown (issue #44): parcel collected from the sender."""
+    assert map_observation_status("C01") == ParcelStatus.IN_TRANSIT
+
+
 def test_map_observation_status_pickup_from_sender_2026_09_18():
     """F01 reported as unknown (comment on issue #23)."""
     assert map_observation_status("F01") == ParcelStatus.IN_TRANSIT
