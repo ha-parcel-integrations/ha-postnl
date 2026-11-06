@@ -50,6 +50,16 @@ rate-limit, changed widget, network blip) → generic `HomeAssistantError` →
 retryable `UpdateFailed`/`ConfigEntryNotReady`. Reauth guards the account with
 `async_set_unique_id` + `_abort_if_unique_id_mismatch`.
 
+**Only Capture's own `statusMessage` may raise `PostNLInvalidAuth`.** The
+step-3 `get_result` body carries a `result.statusMessage`; just four values
+(`invalidCredentials`, `invalidPassword`, `invalidIdentifier`, `noSuchAccount`)
+mean the password was wrong. A captcha, `rateLimitExceeded`, an unreadable body
+— and `transactionIdNotFound`, which is re-polled — stay retryable. **Don't go
+back to "no `accessToken` ⇒ wrong password"**: that reported a captcha as a bad
+password and dropped the session (#46). Read `statusMessage` through
+`_capture_result`, never off the whole body — the failure body repeats the key
+inside the widget's screen render.
+
 **Never read `coordinator.jouw_api` directly from outside the poll cycle — use
 `coordinator.async_get_jouw_api()`.** The image entity fetches on demand, so the
 cached client's baked-in token can be expired; reading it directly produced a 401

@@ -33,6 +33,23 @@ _USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/136.0.0.0 Safari/537.36"
 )
+# Capture registers the transaction asynchronously, so the first poll can
+# arrive before it exists. Only that race is re-polled.
+_CAPTURE_POLL_ATTEMPTS = 4
+_CAPTURE_POLL_DELAY = 1.0
+_CAPTURE_RACE_STATUS = "transactionIdNotFound"
+# The Capture statusMessages that mean the credentials themselves were
+# rejected. Everything else the widget can answer with — a captcha, a rate
+# limit, an unverified address, a shape we have never seen — is not a
+# password problem and must stay retryable.
+_CAPTURE_CREDENTIAL_ERRORS = frozenset(
+    {
+        "invalidCredentials",
+        "invalidPassword",
+        "invalidIdentifier",
+        "noSuchAccount",
+    }
+)
 
 
 class PostNLAuthError(Exception):
@@ -83,13 +100,20 @@ class PostNLAuth:
             allow_redirects=True,
         ) as resp:
             login_url = str(resp.url)
+            login_status = resp.status
             body = await resp.text()
 
         csrf = self._csrf_from_jar(session.cookie_jar) or self._js_value(
             body, "aicCsrf:"
         )
         if not csrf:
-            raise PostNLAuthError("Could not find CSRF token")
+            # Neither the cookie nor the page carried it, so this is not the
+            # Hosted Login page at all — an error page or a bot challenge.
+            # The status is the only clue the user can report back (#46).
+            raise PostNLAuthError(
+                f"Could not find CSRF token (login page returned HTTP "
+                f"{login_status}, {len(body)} bytes)"
+            )
 
         # Step 2: submit credentials to the Capture widget
         txid = base64.urlsafe_b64encode(secrets.token_bytes(30)).rstrip(b"=").decode()
@@ -122,20 +146,40 @@ class PostNLAuth:
             await resp.read()
 
         # Step 3: poll for Capture result
-        async with session.get(
-            f"{_BASE}/widget/get_result.jsonp",
-            params={
-                "transactionId": txid,
-                "cache": str(int(time.time() * 1000)),
-            },
-            headers={"User-Agent": _USER_AGENT},
-        ) as resp:
-            result_body = await resp.text()
+        capture_token = None
+        status_message = None
+        for attempt in range(_CAPTURE_POLL_ATTEMPTS):
+            if attempt:
+                await asyncio.sleep(_CAPTURE_POLL_DELAY)
 
-        capture_token = self._json_value(result_body, "accessToken")
+            async with session.get(
+                f"{_BASE}/widget/get_result.jsonp",
+                params={
+                    "transactionId": txid,
+                    "cache": str(int(time.time() * 1000)),
+                },
+                headers={"User-Agent": _USER_AGENT},
+            ) as resp:
+                result_body = await resp.text()
+
+            capture_token = self._json_value(result_body, "accessToken")
+            if capture_token:
+                break
+
+            status_message = self._json_value(
+                self._capture_result(result_body), "statusMessage"
+            )
+            if status_message != _CAPTURE_RACE_STATUS:
+                break
+
         if not capture_token:
-            raise PostNLInvalidAuth(
-                "Capture did not return an access token — check your credentials"
+            if status_message in _CAPTURE_CREDENTIAL_ERRORS:
+                raise PostNLInvalidAuth(
+                    f"Capture rejected the credentials ({status_message})"
+                )
+            raise PostNLAuthError(
+                "Capture did not return an access token "
+                f"({status_message or 'no status in the result'})"
             )
 
         # Step 4: exchange the Capture token for an OIDC auth code
@@ -282,6 +326,31 @@ class PostNLAuth:
             if cookie.key == "_csrf_token":
                 return cookie.value
         return None
+
+    @staticmethod
+    def _capture_result(body: str) -> str:
+        """Return the Capture JSONP's ``result`` object, or the whole body.
+
+        A failed sign-in answers with the result object *plus* the widget's
+        entire screen render, which repeats keys like ``statusMessage`` with
+        values belonging to other screens. Only the result object describes
+        this transaction.
+        """
+        start = body.find('"result":')
+        if start == -1:
+            return body
+        brace = body.find("{", start)
+        if brace == -1:
+            return body
+        depth = 0
+        for index in range(brace, len(body)):
+            if body[index] == "{":
+                depth += 1
+            elif body[index] == "}":
+                depth -= 1
+                if depth == 0:
+                    return body[start : index + 1]
+        return body
 
     @staticmethod
     def _js_value(body: str, key: str) -> str | None:

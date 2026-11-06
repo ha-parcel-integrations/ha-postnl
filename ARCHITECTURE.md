@@ -118,9 +118,35 @@ blip — becomes a generic `HomeAssistantError` and so a retryable `UpdateFailed
 or `ConfigEntryNotReady`. This is what stopped the "logged out roughly once a
 day" bug; **do not collapse the two paths.**
 
+**Only Capture's own verdict counts as a credential rejection.** Step 3 of the
+login flow polls `get_result.jsonp`, whose JSONP body carries a `result` object
+with a `statusMessage`. `invalidCredentials`, `invalidPassword`,
+`invalidIdentifier` and `noSuchAccount` are the four values that mean the
+password was wrong; `captcha`, `rateLimitExceeded`, anything else, and a body
+with no readable status at all stay retryable. Treating *any* missing
+`accessToken` as "wrong password" is what made a captcha or a rate limit look
+like a bad password and drop the session (#46). `statusMessage` is read from the
+`result` object only (`_capture_result`) — a failure body also ships the
+widget's entire screen render, which repeats the key with values from other
+screens.
+
+**The transaction poll is retried.** Capture registers the transaction
+asynchronously, so an immediate poll can answer `transactionIdNotFound`; that
+single status is re-polled (four attempts, one second apart) instead of being
+reported as a failure.
+
+A missing CSRF token means the authorize GET did not return the Hosted Login
+page at all — an error page, or the bot challenge that `login.postnl.nl` fronts
+with. The error carries the HTTP status and body size, because that is the only
+clue a user can report back.
+
 Reauth guards the account: `reauth_confirm` uses `async_set_unique_id` plus
 `_abort_if_unique_id_mismatch`, so a *different* account's credentials abort
 rather than silently rebinding.
+
+The config and reauth flows mirror the same split: `PostNLInvalidAuth` shows
+`invalid_auth` ("Invalid email or password"), every other `PostNLAuthError`
+shows `login_failed` ("PostNL could not complete the sign-in… try again").
 
 ## Dynamic polling
 

@@ -32,6 +32,7 @@
     },
     "error": {
       "invalid_auth": "E-mail ou mot de passe invalide.",
+      "login_failed": "PostNL n'a pas pu finaliser la connexion. C'est généralement temporaire — réessayez dans quelques minutes.",
       "cannot_connect": "Impossible de joindre PostNL. Vérifiez votre connexion réseau."
     },
     "abort": {

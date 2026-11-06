@@ -21,7 +21,7 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 import voluptuous as vol
 
-from .auth import PostNLAuth, PostNLAuthError
+from .auth import PostNLAuth, PostNLAuthError, PostNLInvalidAuth
 from .const import (
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
@@ -177,9 +177,16 @@ class PostNLConfigFlow(ConfigFlow, domain=DOMAIN):
                 user_input[CONF_USERNAME],
                 user_input[CONF_PASSWORD],
             ).async_login()
-        except PostNLAuthError as err:
-            _LOGGER.debug("PostNL login failed: %s", err)
+        except PostNLInvalidAuth as err:
+            _LOGGER.debug("PostNL rejected the credentials: %s", err)
             return None, {"base": "invalid_auth"}
+        except PostNLAuthError as err:
+            # Not a credential rejection: a captcha, a rate limit, a bot
+            # challenge in front of the login page, a changed widget. Saying
+            # "invalid email or password" here sent a user with correct
+            # credentials chasing the wrong thing (#46).
+            _LOGGER.debug("PostNL login failed: %s", err)
+            return None, {"base": "login_failed"}
         except aiohttp.ClientError as err:
             _LOGGER.debug("PostNL connection error: %s", err)
             return None, {"base": "cannot_connect"}

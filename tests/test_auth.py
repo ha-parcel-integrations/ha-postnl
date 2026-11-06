@@ -395,16 +395,22 @@ async def test_check_and_refresh_token_returns_early_when_another_caller_refresh
     hass.config_entries.async_update_entry.assert_not_called()
 
 
-@pytest.mark.asyncio
-async def test_login_raises_invalid_auth_when_capture_returns_no_token():
-    """Bad credentials → Capture yields no access token → PostNLInvalidAuth."""
+async def _run_capture_poll(*poll_bodies):
+    """Drive async_login to step 3 with the given Capture poll bodies.
+
+    Every caller here expects step 3 to fail, so the fake session only
+    carries steps 1-3; the session and the raised error come back so a test
+    can assert on both the classification and how often it polled.
+    """
     login_url = "https://login.postnl.nl/login/authorize?client_id=x&state=s"
     authorize_resp = _response(text="aicCsrf: 'csrf123'")
     authorize_resp.url = login_url
-    capture_submit_resp = _response()
-    capture_poll_resp = _response(text="{}")  # no accessToken in the result
 
-    session = _aiohttp_session(authorize_resp, capture_submit_resp, capture_poll_resp)
+    session = _aiohttp_session(
+        authorize_resp,
+        _response(),
+        *[_response(text=body) for body in poll_bodies],
+    )
     session.cookie_jar = []
 
     with (
@@ -413,9 +419,110 @@ async def test_login_raises_invalid_auth_when_capture_returns_no_token():
             return_value=_AsyncContext(session),
         ),
         patch.object(PostNLAuth, "_pkce_pair", return_value=("v", "c")),
-        pytest.raises(PostNLInvalidAuth),
+        patch("custom_components.postnl.auth.asyncio.sleep", new=AsyncMock()),
+        pytest.raises(PostNLAuthError) as excinfo,
     ):
         await PostNLAuth("user", "pw").async_login()
+
+    return session, excinfo.value
+
+
+def _capture_error(status_message):
+    return (
+        '(cb)({"stat":"ok","result":{"status":"error","statusMessage":"'
+        + status_message
+        + '","action":"traditionalSignin"}})'
+    )
+
+
+@pytest.mark.asyncio
+async def test_login_raises_invalid_auth_when_capture_rejects_the_credentials():
+    """Capture's own `invalidCredentials` is the only thing that means the
+    password was wrong — that one escalates to reauth."""
+    _session, err = await _run_capture_poll(_capture_error("invalidCredentials"))
+
+    assert isinstance(err, PostNLInvalidAuth)
+    assert "invalidCredentials" in str(err)
+
+
+@pytest.mark.asyncio
+async def test_login_keeps_a_rate_limit_retryable():
+    """A Capture rate limit is not a credential problem: it must stay a
+    generic (retryable) PostNLAuthError so the session is not dropped."""
+    _session, err = await _run_capture_poll(_capture_error("rateLimitExceeded"))
+
+    assert not isinstance(err, PostNLInvalidAuth)
+    assert "rateLimitExceeded" in str(err)
+
+
+@pytest.mark.asyncio
+async def test_login_keeps_an_unrecognised_capture_result_retryable():
+    """A result shape we have never seen says nothing about the credentials,
+    so it must not log the user out either (#46)."""
+    session, err = await _run_capture_poll("{}")
+
+    assert not isinstance(err, PostNLInvalidAuth)
+    # Nothing to wait for — an unreadable result is not re-polled.
+    assert session.get.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_login_repolls_while_capture_has_not_registered_the_transaction():
+    """Capture registers the transaction asynchronously, so the first poll
+    can race ahead of it. That race is re-polled, not reported."""
+    race = _capture_error("transactionIdNotFound")
+    session, err = await _run_capture_poll(race, race, _capture_error("captcha"))
+
+    assert "captcha" in str(err)
+    # step 1 plus three polls
+    assert session.get.call_count == 4
+
+
+@pytest.mark.asyncio
+async def test_login_stops_repolling_after_the_attempt_cap():
+    """A transaction that never appears must not poll forever."""
+    race = _capture_error("transactionIdNotFound")
+    session, err = await _run_capture_poll(*[race] * 6)
+
+    assert "transactionIdNotFound" in str(err)
+    assert session.get.call_count == 1 + 4
+
+
+@pytest.mark.asyncio
+async def test_login_reports_the_http_status_when_the_csrf_token_is_missing():
+    """Neither cookie nor page carried the token, so this was not the login
+    page — the status is the only clue the user can report back."""
+    blocked = _response(text="<html>Access Denied</html>", status=403)
+    session = _aiohttp_session(blocked)
+    session.cookie_jar = []
+
+    with (
+        patch(
+            "custom_components.postnl.auth.aiohttp.ClientSession",
+            return_value=_AsyncContext(session),
+        ),
+        patch.object(PostNLAuth, "_pkce_pair", return_value=("v", "c")),
+        pytest.raises(PostNLAuthError, match="HTTP 403"),
+    ):
+        await PostNLAuth("user", "pw").async_login()
+
+
+def test_capture_result_scopes_to_the_transaction_result():
+    """The failure body repeats statusMessage in the widget's screen render;
+    only the result object describes this transaction."""
+    body = (
+        '(cb)({"stat":"ok","result":{"status":"error",'
+        '"statusMessage":"invalidCredentials","nested":{"a":1}}},'
+        '{"messages":{"statusMessage":"Failed to send email"}})'
+    )
+    result = PostNLAuth._capture_result(body)
+    assert PostNLAuth._json_value(result, "statusMessage") == "invalidCredentials"
+
+
+def test_capture_result_falls_back_to_the_whole_body():
+    assert PostNLAuth._capture_result("{}") == "{}"
+    assert PostNLAuth._capture_result('"result":') == '"result":'
+    assert PostNLAuth._capture_result('"result":{"a":1') == '"result":{"a":1'
 
 
 @pytest.mark.asyncio

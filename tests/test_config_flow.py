@@ -8,7 +8,7 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.postnl.auth import PostNLAuthError
+from custom_components.postnl.auth import PostNLAuthError, PostNLInvalidAuth
 from custom_components.postnl.const import (
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
@@ -61,7 +61,7 @@ async def test_user_flow_creates_entry(hass):
 async def test_user_flow_invalid_auth(hass):
     with patch(
         "custom_components.postnl.config_flow.PostNLAuth.async_login",
-        new=AsyncMock(side_effect=PostNLAuthError("nope")),
+        new=AsyncMock(side_effect=PostNLInvalidAuth("invalidCredentials")),
     ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": SOURCE_USER}
@@ -71,6 +71,23 @@ async def test_user_flow_invalid_auth(hass):
         )
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "invalid_auth"}
+
+
+async def test_user_flow_login_failed_is_not_reported_as_a_bad_password(hass):
+    """A captcha, a rate limit or a bot challenge in front of the login page
+    is not a credential problem, and must not be shown as one (#46)."""
+    with patch(
+        "custom_components.postnl.config_flow.PostNLAuth.async_login",
+        new=AsyncMock(side_effect=PostNLAuthError("rateLimitExceeded")),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=_USER_INPUT
+        )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "login_failed"}
 
 
 async def test_user_flow_cannot_connect(hass):
@@ -158,7 +175,7 @@ async def test_reauth_flow_surfaces_invalid_auth(hass):
 
     with patch(
         "custom_components.postnl.config_flow.PostNLAuth.async_login",
-        new=AsyncMock(side_effect=PostNLAuthError("nope")),
+        new=AsyncMock(side_effect=PostNLInvalidAuth("invalidCredentials")),
     ):
         result = await entry.start_reauth_flow(hass)
         result = await hass.config_entries.flow.async_configure(

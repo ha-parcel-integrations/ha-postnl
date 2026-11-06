@@ -32,6 +32,7 @@
     },
     "error": {
       "invalid_auth": "Invalid email or password.",
+      "login_failed": "PostNL could not complete the sign-in. This is usually temporary — try again in a few minutes.",
       "cannot_connect": "Unable to reach PostNL. Check your network."
     },
     "abort": {
