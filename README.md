@@ -257,6 +257,7 @@ Ready-to-paste automations and dashboard cards live in [`examples/`](examples/).
 
 Third-party cards that work with this integration's sensors:
 
+- [jonisnet/ha-parcel-card](https://github.com/jonisnet/ha-parcel-card)
 - [jonisnet/hki-parcels-card](https://github.com/jonisnet/hki-parcels-card)
 - [klaptafel/ha-package-tracker-card](https://github.com/klaptafel/ha-package-tracker-card)
 
