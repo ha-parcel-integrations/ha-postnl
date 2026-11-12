@@ -1750,6 +1750,15 @@ def test_map_observation_status_neighbours_and_delay_2026_10_22(caplog):
     assert "issues/new" not in caplog.text
 
 
+def test_map_observation_status_received_by_postnl_2026_11_12(caplog):
+    """V50 reported as unknown (issue #47): variant of B01/C02."""
+    assert (
+        map_observation_status("V50", "Ontvangen door PostNL")
+        == ParcelStatus.IN_TRANSIT
+    )
+    assert "issues/new" not in caplog.text
+
+
 def test_map_observation_status_meta_codes_are_silent_null(caplog):
     """Notification/admin codes are known → no movement status, no warning."""
     for code in (
