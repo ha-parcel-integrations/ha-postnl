@@ -72,9 +72,14 @@ inbox is account-scoped (`.be` returns a byte-identical list); MyMail on `.be`
 returns HTTP 400. A NL/BE dropdown is a no-op for parcels and breaks letters —
 **do not add one.** The real Belgium gap is bpost.
 
-**Every `jouw_api` call needs its `(10, 60)` timeout** — `requests` has no
-session-level default and a hang would block an executor thread, and the whole
-refresh, forever. **API clients are reused across polls**, rebuilt only on an
+**Every `requests` call needs its explicit timeout** — `(10, 60)` on
+`jouw_api`, `(10, 30)` on `login_api` — and every call to `login.postnl.nl`
+needs the browser `USER_AGENT` from `const.py`, shared with `auth.py`'s login
+flow. `requests` has no session-level default and a hang would block an executor
+thread, and the whole refresh, forever; on `login_api.userinfo()`, which runs
+inside `async_setup_entry`, it hung setup itself (#50).
+
+**API clients are reused across polls**, rebuilt only on an
 access-token change (`_api_token`); each owns a `requests.Session` pool that
 would otherwise leak every poll.
 

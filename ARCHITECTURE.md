@@ -67,9 +67,17 @@ documented divergence from the Platinum `async-dependency` / `inject-websession`
 rules: converting them would be a large refactor for marginal gain on an
 integration that polls a handful of times an hour. Two consequences follow.
 
-**Every `jouw_api` call carries a `(10, 60)` timeout.** `requests` has no
+**Every `requests` call carries an explicit `(connect, read)` timeout** —
+`(10, 60)` on `jouw_api`, `(10, 30)` on `login_api`. `requests` has no
 session-level default, so a hanging server would block an executor thread — and
-with it the whole refresh — indefinitely.
+with it the whole refresh — indefinitely. `login_api.userinfo()` runs inside
+`async_setup_entry`, where the same hang left setup waiting forever instead of
+failing into HA's retry (#50).
+
+**`login.postnl.nl` is only answered with a browser `User-Agent`.** The constant
+lives in `const.py` because both the `auth.py` login flow and `login_api.py`
+need it; a default `python-requests` agent is where the userinfo call stalled
+(#50).
 
 **API clients are reused across polls**, rebuilt only when the access token
 changes (`_api_token`). Each owns a `requests.Session` connection pool that would

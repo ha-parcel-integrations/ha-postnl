@@ -6,6 +6,16 @@ from homeassistant.const import Platform
 
 DOMAIN = "postnl"
 
+# login.postnl.nl answers the integration's own login flow and the OIDC
+# userinfo call, and a default python-requests agent is where that stalls
+# (#50) — both clients send the website's own browser agent.
+# suite: allow browser user-agent (the login flow is the website's own)
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/136.0.0.0 Safari/537.36"
+)
+
 PLATFORMS = [
     Platform.BUTTON,
     Platform.CALENDAR,

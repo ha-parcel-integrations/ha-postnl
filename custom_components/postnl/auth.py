@@ -18,6 +18,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 
+from .const import USER_AGENT
+
 _LOGGER = logging.getLogger(__name__)
 
 _BASE = "https://login.postnl.nl"
@@ -27,12 +29,6 @@ _CAPTURE_CLIENT_ID = "dkyxkt9x888ye422mawmf769yfm9y44j"
 _REDIRECT_URI = "https://www.postnl.nl/"
 _SCOPE = "openid poa-profiles-api offline_access"
 _FLOW_VERSION = "20250910094830574377"
-# suite: allow browser user-agent (the login flow is the website's own)
-_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/136.0.0.0 Safari/537.36"
-)
 # Capture registers the transaction asynchronously, so the first poll can
 # arrive before it exists. Only that race is re-polled.
 _CAPTURE_POLL_ATTEMPTS = 4
@@ -96,7 +92,7 @@ class PostNLAuth:
                 "code_challenge": challenge,
                 "code_challenge_method": "S256",
             },
-            headers={"User-Agent": _USER_AGENT},
+            headers={"User-Agent": USER_AGENT},
             allow_redirects=True,
         ) as resp:
             login_url = str(resp.url)
@@ -140,7 +136,7 @@ class PostNLAuth:
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Origin": _BASE,
                 "Referer": login_url,
-                "User-Agent": _USER_AGENT,
+                "User-Agent": USER_AGENT,
             },
         ) as resp:
             await resp.read()
@@ -158,7 +154,7 @@ class PostNLAuth:
                     "transactionId": txid,
                     "cache": str(int(time.time() * 1000)),
                 },
-                headers={"User-Agent": _USER_AGENT},
+                headers={"User-Agent": USER_AGENT},
             ) as resp:
                 result_body = await resp.text()
 
@@ -224,7 +220,7 @@ class PostNLAuth:
         # Step 5: follow the authorize redirect to capture the auth code
         async with session.get(
             auth_url,
-            headers={"User-Agent": _USER_AGENT},
+            headers={"User-Agent": USER_AGENT},
             allow_redirects=False,
         ) as resp:
             final_location = resp.headers.get("Location", "")
@@ -278,7 +274,7 @@ class PostNLAuth:
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Origin": _BASE,
                 "Referer": referer,
-                "User-Agent": _USER_AGENT,
+                "User-Agent": USER_AGENT,
             },
             allow_redirects=False,
         ) as resp:
@@ -292,7 +288,7 @@ class PostNLAuth:
             data=data,
             headers={
                 "Content-Type": "application/x-www-form-urlencoded",
-                "User-Agent": _USER_AGENT,
+                "User-Agent": USER_AGENT,
             },
         ) as resp:
             token_data = await resp.json(content_type=None)
