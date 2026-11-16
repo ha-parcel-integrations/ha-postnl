@@ -2,7 +2,7 @@
 
 [![Release](https://img.shields.io/github/v/release/ha-parcel-integrations/ha-postnl.svg)](https://github.com/ha-parcel-integrations/ha-postnl/releases)
 [![Downloads](https://img.shields.io/github/downloads/ha-parcel-integrations/ha-postnl/total.svg)](https://github.com/ha-parcel-integrations/ha-postnl/releases)
-[![HACS](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
+[![Marketplace](https://img.shields.io/badge/Marketplace-Default-41BDF5.svg)](https://hacs.xyz)
 [![License](https://img.shields.io/badge/License-MIT%20%2B%20Apache%202.0-yellow.svg)](NOTICE)
 
 > 📦 Part of [**ha-parcel-integrations**](https://ha-parcel-integrations.github.io/), a family of package-tracking integrations for Home Assistant that all publish the same parcel format, statuses and events, so they plug into cross-carrier automations and the optional [Parcel Aggregator](https://github.com/ha-parcel-integrations/ha-parcel-aggregator). Browse the other carriers on the website.
@@ -51,15 +51,15 @@ Based upon the original work by [@arjenbos](https://github.com/arjenbos/ha-postn
 
 ## Installation
 
-### HACS (recommended)
+### Marketplace (recommended)
 
-1. Open HACS and search for **PostNL**
+1. Open the Marketplace and search for **PostNL**
 2. Install it
-3. Restart Home Assistant if HACS asks you to
+3. Restart Home Assistant if it asks you to
 
-Or click the button below to open it directly in HACS:
+Or click the button below to open it directly in the Marketplace:
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ha-parcel-integrations&repository=ha-postnl&category=integration)
+[![Open your Home Assistant instance and open a repository inside the Marketplace.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ha-parcel-integrations&repository=ha-postnl&category=integration)
 
 ### Manual
 
