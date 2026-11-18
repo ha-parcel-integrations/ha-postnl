@@ -155,6 +155,12 @@ rather than silently rebinding.
 The config and reauth flows mirror the same split: `PostNLInvalidAuth` shows
 `invalid_auth` ("Invalid email or password"), every other `PostNLAuthError`
 shows `login_failed` ("PostNL could not complete the sign-in… try again").
+One subclass gets its own message: when the token-url step renders the
+`authRule_consents` screen instead of `loginSuccess`, PostNL is holding the
+sign-in until the account accepts new terms (#51). That raises
+`PostNLConsentRequired` and shows `consent_required`, which sends the user to
+postnl.nl — a private window, because a remembered browser session can skip
+the prompt. At runtime it stays retryable like any other `PostNLAuthError`.
 
 ## Dynamic polling
 

@@ -47,7 +47,9 @@ callers never spend the same rotating token twice.
 it.** Only `PostNLInvalidAuth` (a definitive credential rejection) escalates to
 `ConfigEntryAuthFailed`/reauth. Every other `PostNLAuthError` (recaptcha,
 rate-limit, changed widget, network blip) → generic `HomeAssistantError` →
-retryable `UpdateFailed`/`ConfigEntryNotReady`. Reauth guards the account with
+retryable `UpdateFailed`/`ConfigEntryNotReady` — including
+`PostNLConsentRequired` (the `authRule_consents` screen, #51), which only gets
+its own form message. Reauth guards the account with
 `async_set_unique_id` + `_abort_if_unique_id_mismatch`.
 
 **Only Capture's own `statusMessage` may raise `PostNLInvalidAuth`.** The

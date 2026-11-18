@@ -8,7 +8,11 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.postnl.auth import PostNLAuthError, PostNLInvalidAuth
+from custom_components.postnl.auth import (
+    PostNLAuthError,
+    PostNLConsentRequired,
+    PostNLInvalidAuth,
+)
 from custom_components.postnl.const import (
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
@@ -88,6 +92,21 @@ async def test_user_flow_login_failed_is_not_reported_as_a_bad_password(hass):
         )
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "login_failed"}
+
+
+async def test_user_flow_reports_pending_consent(hass):
+    with patch(
+        "custom_components.postnl.config_flow.PostNLAuth.async_login",
+        new=AsyncMock(side_effect=PostNLConsentRequired("authRule_consents")),
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_USER}
+        )
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=_USER_INPUT
+        )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "consent_required"}
 
 
 async def test_user_flow_cannot_connect(hass):

@@ -21,6 +21,7 @@ from custom_components.postnl.auth import (
     AsyncConfigEntryAuth,
     PostNLAuth,
     PostNLAuthError,
+    PostNLConsentRequired,
     PostNLInvalidAuth,
 )
 
@@ -464,6 +465,55 @@ async def test_login_keeps_an_unrecognised_capture_result_retryable():
     assert not isinstance(err, PostNLInvalidAuth)
     # Nothing to wait for — an unreadable result is not re-polled.
     assert session.get.call_count == 2
+
+
+async def _run_token_url(token_url_body):
+    """Drive async_login through a successful Capture into step 4."""
+    login_url = "https://login.postnl.nl/login/authorize?client_id=x&state=s"
+    authorize_resp = _response(text="aicCsrf: 'csrf123'")
+    authorize_resp.url = login_url
+
+    session = _aiohttp_session(
+        authorize_resp,
+        _response(),
+        _response(text='{"accessToken":"capturetok"}'),
+        _response(text=token_url_body),
+    )
+    session.cookie_jar = []
+
+    with (
+        patch(
+            "custom_components.postnl.auth.aiohttp.ClientSession",
+            return_value=_AsyncContext(session),
+        ),
+        patch.object(PostNLAuth, "_pkce_pair", return_value=("v", "c")),
+        pytest.raises(PostNLAuthError) as excinfo,
+    ):
+        await PostNLAuth("user", "pw").async_login()
+
+    return excinfo.value
+
+
+@pytest.mark.asyncio
+async def test_login_reports_the_consent_screen_on_its_own():
+    """PostNL can hold the sign-in until the account accepts new terms (#51).
+    That is neither a wrong password nor a temporary failure."""
+    err = await _run_token_url(
+        "screenToRender: 'authRule_consents', existingToken: 't', aicCsrf: 'c'"
+    )
+
+    assert isinstance(err, PostNLConsentRequired)
+    assert not isinstance(err, PostNLInvalidAuth)
+
+
+@pytest.mark.asyncio
+async def test_login_keeps_an_unknown_token_url_screen_generic():
+    err = await _run_token_url(
+        "screenToRender: 'somethingNew', existingToken: 't', aicCsrf: 'c'"
+    )
+
+    assert not isinstance(err, PostNLConsentRequired | PostNLInvalidAuth)
+    assert "loginSuccess" in str(err)
 
 
 @pytest.mark.asyncio

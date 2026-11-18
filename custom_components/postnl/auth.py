@@ -34,6 +34,7 @@ _FLOW_VERSION = "20250910094830574377"
 _CAPTURE_POLL_ATTEMPTS = 4
 _CAPTURE_POLL_DELAY = 1.0
 _CAPTURE_RACE_STATUS = "transactionIdNotFound"
+_CONSENT_SCREEN = "authRule_consents"
 # The Capture statusMessages that mean the credentials themselves were
 # rejected. Everything else the widget can answer with — a captcha, a rate
 # limit, an unverified address, a shape we have never seen — is not a
@@ -58,6 +59,15 @@ class PostNLInvalidAuth(PostNLAuthError):
     Distinct from a generic ``PostNLAuthError`` so callers can tell a
     definitive "your credentials are wrong" (reauth) apart from a
     transient login hiccup (retry).
+    """
+
+
+class PostNLConsentRequired(PostNLAuthError):
+    """Raised when PostNL holds the sign-in until the account accepts new terms.
+
+    Only the user can clear it, on postnl.nl, so it is reported on its own
+    rather than as a temporary failure. It stays retryable: the credentials
+    are fine and the next login succeeds once the terms are accepted.
     """
 
 
@@ -200,6 +210,10 @@ class PostNLAuth:
             existing_token = self._js_value(body, "existingToken:")
             screen = self._js_value(body, "screenToRender:")
             csrf = self._js_value(body, "aicCsrf:")
+            if screen == _CONSENT_SCREEN:
+                raise PostNLConsentRequired(
+                    "PostNL wants the account to accept new terms; sign in at postnl.nl to accept them"
+                )
             if screen != "loginSuccess" or not existing_token or not csrf:
                 raise PostNLAuthError("Hosted Login did not reach loginSuccess")
 

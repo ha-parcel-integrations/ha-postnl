@@ -33,6 +33,7 @@
     "error": {
       "invalid_auth": "Ongeldig e-mailadres of wachtwoord.",
       "login_failed": "PostNL kon het inloggen niet afronden. Dit is meestal tijdelijk — probeer het over een paar minuten opnieuw.",
+      "consent_required": "PostNL wil dat je eerst nieuwe voorwaarden accepteert voordat deze integratie kan inloggen. Log in op postnl.nl in een privévenster, accepteer de extra toestemmingen die daar gevraagd worden en probeer het daarna opnieuw.",
       "cannot_connect": "Kan PostNL niet bereiken. Controleer je netwerkverbinding."
     },
     "abort": {

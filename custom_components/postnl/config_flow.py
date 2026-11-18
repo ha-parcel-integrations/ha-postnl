@@ -21,7 +21,7 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 import voluptuous as vol
 
-from .auth import PostNLAuth, PostNLAuthError, PostNLInvalidAuth
+from .auth import PostNLAuth, PostNLAuthError, PostNLConsentRequired, PostNLInvalidAuth
 from .const import (
     CONF_DELIVERED_FILTER_AMOUNT,
     CONF_DELIVERED_FILTER_TYPE,
@@ -180,6 +180,9 @@ class PostNLConfigFlow(ConfigFlow, domain=DOMAIN):
         except PostNLInvalidAuth as err:
             _LOGGER.debug("PostNL rejected the credentials: %s", err)
             return None, {"base": "invalid_auth"}
+        except PostNLConsentRequired as err:
+            _LOGGER.debug("PostNL login held for consent: %s", err)
+            return None, {"base": "consent_required"}
         except PostNLAuthError as err:
             # Not a credential rejection: a captcha, a rate limit, a bot
             # challenge in front of the login page, a changed widget. Saying
