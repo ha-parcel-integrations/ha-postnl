@@ -1765,6 +1765,17 @@ def test_map_observation_status_received_by_postnl_2026_11_12(caplog):
     assert "issues/new" not in caplog.text
 
 
+def test_map_observation_status_not_offered_and_empty_2026_11_19(caplog):
+    """M01 and P06 reported as unknown (issue #52)."""
+    assert (
+        map_observation_status("M01", "Pakket niet fysiek aangeboden aan PostNL")
+        == ParcelStatus.REGISTERED
+    )
+    assert map_observation_status("P06", "leeg") is None
+    assert "P06" in _OBSERVATION_META_CODES
+    assert "issues/new" not in caplog.text
+
+
 def test_map_observation_status_meta_codes_are_silent_null(caplog):
     """Notification/admin codes are known → no movement status, no warning."""
     for code in (

@@ -78,6 +78,7 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     # --- Pre-receipt baseline (registered) ---
     "A01": ParcelStatus.REGISTERED,  # nog niet ontvangen/verwerkt
     "A03": ParcelStatus.REGISTERED,  # zending aangemeld (pre-advice)
+    "M01": ParcelStatus.REGISTERED,  # pakket niet fysiek aangeboden aan PostNL (announced, never handed over)
     "M02": ParcelStatus.REGISTERED,  # nog niet ontvangen/verwerkt (variant of A01)
     # --- In the network (in_transit) ---
     "B01": ParcelStatus.IN_TRANSIT,  # ontvangen door PostNL
@@ -164,6 +165,7 @@ _OBSERVATION_META_CODES: frozenset[str] = frozenset(
         "P20",  # afgesproken plek is niet veilig (delivery method changes, parcel does not move)
         "P21",  # zending kan niet in brievenbus (delivery method changes, parcel does not move)
         "P02",  # "leeg" placeholder (variant of K33)
+        "P06",  # "leeg" placeholder (variant of K33)
     }
 )
 
