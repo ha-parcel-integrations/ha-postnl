@@ -97,9 +97,18 @@ whether `history` is *exposed*). Ordered substring patterns against
 `statusPhase.message` are the fallback, only when derivation returns `None`. Raw
 string always on `raw_status`, never `status`. PostNL's free text drifts wording
 — five closed "unrecognised status" issues, one root cause — so **don't invert
-this preference.** `delivered` is GraphQL's flag **or** a mapped `delivered`
-status — GraphQL can lag behind T&T (#33); don't make GraphQL the sole source
-again.
+this preference.** GraphQL's `delivered` flag is folded into the status
+mapping (it wins there), and `delivered` is then `status is DELIVERED` — a
+Track & Trace delivery still counts when GraphQL lags (#33); don't make GraphQL
+the sole source again.
+
+**Parcel contract:** `planned_*` go through `planned_window` (zone
+`Europe/Amsterdam`) and are emptied at `at_pickup_point`, `returning` and
+`delivered`; `pickup` is the `ServicePoint` address type, else any observation
+that reached `at_pickup_point`, so it stays true once collected. `pickup_point`
+stays `None`: no payload field names the point yet. `next_delivery` skips a
+parcel whose window has ended and the calendar shows a whole-day window as an
+all-day event.
 
 **`planned_from` carries PostNL's narrow ETA when there is one, and
 `planned_to` never changes** (`_delivery_window_start`, #28). The estimate rides

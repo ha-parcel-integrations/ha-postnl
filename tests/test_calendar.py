@@ -1,6 +1,6 @@
 """Tests for the PostNL deliveries calendar."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from unittest.mock import MagicMock
 
 from custom_components.postnl.calendar import PostNLDeliveriesCalendar
@@ -107,6 +107,53 @@ async def test_get_events_filters_by_range():
             _parcel("FUTURE", planned_from="2099-01-01T10:00:00Z"),
         ]
     )
+    start = datetime(2098, 1, 1, tzinfo=UTC)
+    end = datetime(2100, 1, 1, tzinfo=UTC)
+    events = await cal.async_get_events(MagicMock(), start, end)
+    assert {e.uid for e in events} == {"FUTURE"}
+
+
+def _planned(barcode, planned_from, planned_to):
+    return _parcel(barcode, planned_from=planned_from, planned_to=planned_to)
+
+
+def test_whole_day_window_is_an_all_day_event():
+    cal = _calendar(
+        [_planned("A", "2099-01-01T00:00:00+01:00", "2099-01-01T23:59:59+01:00")]
+    )
+    event = cal._events()[0]
+    assert (event.start, event.end) == (date(2099, 1, 1), date(2099, 1, 2))
+    assert event.all_day
+
+
+def test_window_over_whole_days_is_one_all_day_event():
+    cal = _calendar([_planned("A", "2099-01-01T00:00:00", "2099-01-03T23:59:59")])
+    event = cal._events()[0]
+    assert (event.start, event.end) == (date(2099, 1, 1), date(2099, 1, 4))
+
+
+async def test_whole_day_window_sent_in_utc_is_all_day_in_local_time(hass):
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    cal = _calendar([_planned("A", "2099-01-01T23:00:00Z", "2099-01-02T22:59:59Z")])
+    event = cal._events()[0]
+    assert (event.start, event.end) == (date(2099, 1, 2), date(2099, 1, 3))
+
+
+def test_a_moment_stretched_to_the_end_of_its_day_stays_timed():
+    cal = _calendar(
+        [_planned("A", "2099-01-01T14:00:00+01:00", "2099-01-01T23:59:59+01:00")]
+    )
+    assert not cal._events()[0].all_day
+
+
+async def test_all_day_events_are_upcoming_and_filtered_by_range():
+    cal = _calendar(
+        [
+            _planned("PAST", "2000-01-01T00:00:00", "2000-01-01T23:59:59"),
+            _planned("FUTURE", "2099-01-01T00:00:00", "2099-01-01T23:59:59"),
+        ]
+    )
+    assert cal.event.uid == "FUTURE"
     start = datetime(2098, 1, 1, tzinfo=UTC)
     end = datetime(2100, 1, 1, tzinfo=UTC)
     events = await cal.async_get_events(MagicMock(), start, end)

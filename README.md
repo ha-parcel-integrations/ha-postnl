@@ -178,8 +178,8 @@ Every parcel exposed on a sensor attribute uses a carrier-agnostic shape:
 | `delivered` | bool | Whether the parcel has been delivered |
 | `delivered_at` | ISO 8601 \| null | Delivery moment, if known |
 | `planned_from` | ISO 8601 \| null | Expected delivery window start. Once PostNL puts the parcel on a route it publishes a far narrower expected time inside that window (e.g. `20:20` within `19:45`–`21:45`); that value is used here when PostNL has one, so dashboards, the calendar and **Next delivery** show the sharper moment. The untouched window start stays available as `raw.planned_from`. |
-| `planned_to` | ISO 8601 \| null | Expected delivery window end |
-| `pickup` | bool | Destined for a PostNL Point rather than a home address |
+| `planned_to` | ISO 8601 \| null | Expected delivery window end; a single delivery time runs to the end of that day. Both planned values are empty once the parcel is at a PostNL Point, returning or delivered |
+| `pickup` | bool | Destined for a PostNL Point rather than a home address; stays true after collection |
 | `pickup_point` | string \| null | PostNL Point name when `pickup` is true (always `null` for now — PostNL does not expose the field) |
 | `url` | string \| null | Deep link to the parcel's tracking page on jouw.postnl.nl |
 | `weight` | float \| null | Parcel weight in kilograms. May be `null` for delivered parcels or when PostNL has not yet attached the data. |

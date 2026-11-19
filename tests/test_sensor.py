@@ -6,7 +6,7 @@ directly so we can hit edge cases without going through the full
 transform_shipment / API flow.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from homeassistant.helpers import entity_registry as er
@@ -173,11 +173,11 @@ def test_summary_sensor_removes_stale_per_parcel_entity_from_registry():
 
 def test_next_delivery_picks_earliest_planned_from():
     parcels = [
-        _parcel(barcode="A", planned_from="2026-06-18T10:00:00Z"),
-        _parcel(barcode="B", planned_from="2026-06-17T09:00:00Z"),
+        _parcel(barcode="A", planned_from="2099-06-18T10:00:00Z"),
+        _parcel(barcode="B", planned_from="2099-06-17T09:00:00Z"),
     ]
     sensor = PostNLNextDeliverySensor(_coordinator(receiver=parcels), _USERINFO)
-    assert sensor.native_value == datetime(2026, 6, 17, 9, 0, tzinfo=UTC)
+    assert sensor.native_value == datetime(2099, 6, 17, 9, 0, tzinfo=UTC)
     assert sensor.extra_state_attributes["barcode"] == "B"
 
 
@@ -386,3 +386,32 @@ async def test_migration_collision_keeps_both_and_warns(
     assert old_id == old.entity_id
     assert new_id == new.entity_id
     assert "reconcile" in caplog.text
+
+
+def _in(**delta) -> str:
+    return (datetime.now(UTC) + timedelta(**delta)).isoformat()
+
+
+def test_next_delivery_skips_a_window_that_has_ended():
+    stale = _parcel(barcode="A", planned_from=_in(days=-3), planned_to=_in(days=-2))
+    moment_only = _parcel(barcode="B", planned_from=_in(hours=-2))
+    later = _parcel(barcode="C", planned_from=_in(days=2))
+    sensor = PostNLNextDeliverySensor(
+        _coordinator(receiver=[stale, moment_only, later]), _USERINFO
+    )
+    assert sensor.extra_state_attributes["barcode"] == "C"
+
+
+def test_next_delivery_keeps_a_window_that_is_still_running():
+    running = _parcel(barcode="A", planned_from=_in(hours=-1), planned_to=_in(hours=2))
+    sensor = PostNLNextDeliverySensor(_coordinator(receiver=[running]), _USERINFO)
+    assert sensor.extra_state_attributes["barcode"] == "A"
+
+
+def test_en_route_leaves_out_a_returning_pickup_parcel():
+    parcels = [
+        _parcel(barcode="BACK", status=ParcelStatus.RETURNING, pickup=True),
+        _parcel(barcode="GOING", status=ParcelStatus.IN_TRANSIT, pickup=True),
+    ]
+    sensor = PostNLEnRouteToPickupPointSensor(_coordinator(receiver=parcels), _USERINFO)
+    assert [p["barcode"] for p in sensor.extra_state_attributes["parcels"]] == ["GOING"]
