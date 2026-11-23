@@ -181,6 +181,13 @@ def test_next_delivery_picks_earliest_planned_from():
     assert sensor.extra_state_attributes["barcode"] == "B"
 
 
+def test_next_delivery_carries_the_contents():
+    parcel = _parcel(barcode="A", planned_from="2099-06-18T10:00:00Z")
+    parcel["contents"] = "Running shoes"
+    sensor = PostNLNextDeliverySensor(_coordinator(receiver=[parcel]), _USERINFO)
+    assert sensor.extra_state_attributes["contents"] == "Running shoes"
+
+
 def test_next_delivery_none_when_no_parcels_have_dates():
     sensor = PostNLNextDeliverySensor(_coordinator(receiver=[_parcel()]), _USERINFO)
     assert sensor.native_value is None

@@ -345,6 +345,7 @@ class PostNLNextDeliverySensor(CoordinatorEntity[PostNLCoordinator], SensorEntit
         return {
             "barcode": earliest.get("barcode"),
             "sender": earliest.get("sender"),
+            "contents": earliest.get("contents"),
         }
 
 
