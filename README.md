@@ -174,7 +174,7 @@ Every parcel exposed on a sensor attribute uses a carrier-agnostic shape:
 | `barcode` | string | Parcel tracking number |
 | `sender` | string \| null | Sender name (e.g. webshop) |
 | `receiver` | string \| null | Recipient name |
-| `contents` | string \| null | What is in the parcel, as set with `postnl.update_contents`; `null` until you set it |
+| `contents` | string \| null | What is in the parcel, as set with `postnl.update_contents`; `null` until you set it; it titles the calendar event and shows on the next-delivery sensor |
 | `status` | `ParcelStatus` | Canonical status — see the [status reference](#parcel-status-reference) |
 | `raw_status` | string \| null | Original PostNL status description (a Dutch human-readable string) |
 | `delivered` | bool | Whether the parcel has been delivered |
