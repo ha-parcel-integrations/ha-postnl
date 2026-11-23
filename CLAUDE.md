@@ -131,6 +131,8 @@ degrades per parcel via `_parcel_cache` (pruned each poll), else GraphQL-only
 fields; `UpdateFailed` is the last resort. `_delivered_history` is non-fatal and
 cached per barcode, but **failures are not cached** so the next poll retries.
 
+**The user's `contents` overlay copies the parcel** (`_apply_contents`) — a parcel can be the `_parcel_cache` fallback, and mutating it would keep a cleared value alive. The carrier fills `contents` nowhere; `update_contents` is the only source.
+
 **Sensor cleanup is sensor-scoped**: filter `domain == "sensor"` before treating
 an `{account_id}_*` unique_id as a barcode, else it deletes the refresh button
 **and the letter image entities**. `_last_update` and every other non-parcel

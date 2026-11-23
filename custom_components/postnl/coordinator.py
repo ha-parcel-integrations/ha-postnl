@@ -31,6 +31,7 @@ from .const import (
     STAGGER_MINUTES,
     ParcelStatus,
 )
+from .contents import ContentsStore, normalize_code
 from .graphql import PostNLGraphql
 from .jouw_api import PostNLJouwAPI
 from .letters import extract_letters
@@ -43,6 +44,25 @@ from .parcels import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _apply_contents(store: ContentsStore, parcel: dict) -> dict:
+    """Put the user's own contents text over the carrier's, when there is one.
+
+    Returns a copy: a parcel can be the cached fallback of an earlier poll, and
+    clearing the text has to bring the carrier's value back.
+    """
+    barcode = parcel.get("barcode")
+    user_value = store.get(barcode) if barcode else None
+    if user_value is None:
+        return parcel
+    return {**parcel, "contents": user_value}
+
+
+def _known_codes(parcels: list[dict]) -> frozenset[str]:
+    return frozenset(
+        normalize_code(parcel["barcode"]) for parcel in parcels if parcel.get("barcode")
+    )
 
 
 def _stagger_minutes(entry_id: str) -> int:
@@ -127,6 +147,10 @@ class PostNLCoordinator(DataUpdateCoordinator):
             # whatever it turns out to find.
             update_interval=timedelta(minutes=HOT_INTERVAL_MINUTES),
         )
+        self.contents_store = ContentsStore(hass, entry.entry_id)
+        # Every code the account lists, delivered ones past the retention filter
+        # included: update_contents asks which account a code belongs to.
+        self.known_codes: frozenset[str] = frozenset()
         self.delivered_receiver: list[dict] = []
         self.delivered_sender: list[dict] = []
         self.letters: list[dict] = []
@@ -272,8 +296,15 @@ class PostNLCoordinator(DataUpdateCoordinator):
             ]
             data["sender"] = await asyncio.gather(*sender_shipments)
 
-            data["receiver"] = sort_parcels_by_ts(data["receiver"], "planned_from")
-            data["sender"] = sort_parcels_by_ts(data["sender"], "planned_from")
+            data["receiver"] = sort_parcels_by_ts(
+                [_apply_contents(self.contents_store, p) for p in data["receiver"]],
+                "planned_from",
+            )
+            data["sender"] = sort_parcels_by_ts(
+                [_apply_contents(self.contents_store, p) for p in data["sender"]],
+                "planned_from",
+            )
+            self.known_codes = _known_codes(data["receiver"] + data["sender"])
 
             # Keep the fallback/history caches bounded to barcodes PostNL
             # still reports; anything older can never be needed again.

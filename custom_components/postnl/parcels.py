@@ -608,6 +608,7 @@ def normalize_parcel(parcel: dict, *, history: list[dict] | None = None) -> dict
         # shop (#13). It stays as a last-resort fallback only.
         "sender": parcel.get("name") or parcel.get("source_display_name"),
         "receiver": parcel.get("receiver"),
+        "contents": None,
         "status": status,
         "raw_status": parcel.get("status_message"),
         "delivered": delivered,

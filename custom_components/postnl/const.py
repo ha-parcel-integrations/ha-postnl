@@ -39,6 +39,12 @@ KNOWN_CAPABILITIES = frozenset(
 # (delivery_address_type == "ServicePoint") is detected.
 CAPABILITIES = frozenset({"weight", "dimensions", "delivery_window", "url", "history"})
 
+# The user-set parcel contents, the barcode the contents action is keyed on, and
+# the optional account it is limited to.
+CONF_CONTENTS = "contents"
+CONF_BARCODE = "barcode"
+CONF_CONFIG_ENTRY_ID = "config_entry_id"
+
 CONF_DELIVERED_FILTER_TYPE = "delivered_filter_type"
 CONF_DELIVERED_FILTER_AMOUNT = "delivered_filter_amount"
 DEFAULT_DELIVERED_FILTER_TYPE = "days"

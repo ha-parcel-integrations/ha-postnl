@@ -22,6 +22,7 @@ Based upon the original work by [@arjenbos](https://github.com/arjenbos/ha-postn
 - [Options](#options)
 - [Removal](#removal)
 - [Sensors](#sensors)
+- [Actions](#actions)
 - [Parcel status reference](#parcel-status-reference)
 - [Events](#events)
 - [Examples](#examples)
@@ -173,6 +174,7 @@ Every parcel exposed on a sensor attribute uses a carrier-agnostic shape:
 | `barcode` | string | Parcel tracking number |
 | `sender` | string \| null | Sender name (e.g. webshop) |
 | `receiver` | string \| null | Recipient name |
+| `contents` | string \| null | What is in the parcel, as set with `postnl.update_contents`; `null` until you set it |
 | `status` | `ParcelStatus` | Canonical status — see the [status reference](#parcel-status-reference) |
 | `raw_status` | string \| null | Original PostNL status description (a Dutch human-readable string) |
 | `delivered` | bool | Whether the parcel has been delivered |
@@ -191,6 +193,12 @@ Each announced letter is exposed as an `image` entity so the scan
 loads directly in dashboards and notifications. See
 [`examples/automations/notify_when_letter_arrives.yaml`](examples/automations/notify_when_letter_arrives.yaml)
 for a ready-to-paste notification.
+
+## Actions
+
+| Action | Description |
+|---|---|
+| `postnl.update_contents` | Set, replace or clear (empty text) what is in a parcel for a barcode; with several accounts it goes to the account that lists the barcode, or the one chosen in `config_entry_id` |
 
 ## Parcel status reference
 

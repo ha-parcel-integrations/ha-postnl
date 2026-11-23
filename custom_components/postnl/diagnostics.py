@@ -24,6 +24,7 @@ TO_REDACT = {
     "key",
     "name",
     "receiver",
+    "contents",
     "receiver_title",
     "url",
     "phoneNumber",

@@ -32,12 +32,15 @@ custom_components/postnl/
 ├── calendar.py          read-only deliveries calendar
 ├── device.py            device registry helpers
 ├── device_trigger.py    six no-code triggers
-└── diagnostics.py       redacted diagnostics
+├── diagnostics.py       redacted diagnostics
+├── contents.py          user-set parcel contents, one store per entry
+└── services.py          the update_contents action
 ```
 
-There is no `api.py` and no `services.py`. The transport is split by API rather
-than gathered behind one client, and there are no track/untrack services because
-the account feed is the source of parcels.
+There is no `api.py`. The transport is split by API rather than gathered behind
+one client. `services.py` holds only `update_contents` (with `contents.py`, the
+per-entry store of the user's own parcel contents); there are no track/untrack
+services because the account feed is the source of parcels.
 
 `parcels.py` and `letters.py` are deliberately free of I/O and HA objects (beyond
 the config entry's options) so the mapping logic stays unit-testable without Home

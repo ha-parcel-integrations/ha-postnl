@@ -1,0 +1,17 @@
+update_contents:
+  fields:
+    barcode:
+      required: true
+      example: "3SEXAMPLE123456"
+      selector:
+        text:
+    contents:
+      required: false
+      example: "Running shoes"
+      selector:
+        text:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: postnl

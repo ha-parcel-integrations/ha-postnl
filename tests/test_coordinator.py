@@ -279,6 +279,7 @@ def test_normalize_parcel_canonical_top_level_keys():
         }
     )
     assert parcel["carrier"] == "PostNL"
+    assert parcel["contents"] is None
     assert parcel["barcode"] == "3SXYZ"
     assert parcel["sender"] == "Bol.com"
     assert parcel["status"] == ParcelStatus.IN_TRANSIT
