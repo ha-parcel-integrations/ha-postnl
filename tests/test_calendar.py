@@ -52,6 +52,20 @@ def test_event_returns_earliest_upcoming():
     assert event.summary == "Example Sender"
 
 
+def test_event_title_is_the_contents_before_the_sender():
+    parcel = _parcel("A", planned_from="2099-01-01T10:00:00Z")
+    parcel["contents"] = "Running shoes"
+    events = _calendar([parcel])._events()
+    assert events[0].summary == "Running shoes"
+
+
+def test_event_title_falls_back_to_the_sender_without_contents():
+    parcel = _parcel("A", planned_from="2099-01-01T10:00:00Z")
+    parcel["contents"] = None
+    events = _calendar([parcel])._events()
+    assert events[0].summary == "Example Sender"
+
+
 def test_delivered_parcels_are_excluded():
     cal = _calendar(
         [
