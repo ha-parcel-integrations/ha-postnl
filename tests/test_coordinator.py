@@ -1660,6 +1660,11 @@ def test_map_observation_status_live_catalogue_2026_09_11():
     assert map_observation_status("I12") == ParcelStatus.DELIVERED
 
 
+def test_map_observation_status_delivered_variant_i03():
+    """I03 'Zending is bezorgd' reported as unknown (issue #55)."""
+    assert map_observation_status("I03") == ParcelStatus.DELIVERED
+
+
 def test_map_observation_status_locker_opened_by_driver_2026_09_18():
     """J46 reported as unknown (issue #24): return parcel collected from a locker."""
     assert map_observation_status("J46") == ParcelStatus.IN_TRANSIT

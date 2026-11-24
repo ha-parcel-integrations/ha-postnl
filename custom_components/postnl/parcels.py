@@ -139,6 +139,7 @@ _OBSERVATION_CODE_MAP: dict[str, ParcelStatus] = {
     "I10": ParcelStatus.DELIVERED,  # pakket is bezorgd bij de buren
     "I11": ParcelStatus.DELIVERED,  # zending is bezorgd in de brievenbus (variant of I05)
     "I12": ParcelStatus.DELIVERED,  # zending is bezorgd op de afgesproken plek (variant of I01)
+    "I03": ParcelStatus.DELIVERED,  # zending is bezorgd (variant of I01)
     "Z01": ParcelStatus.DELIVERED,  # yes! Je zending is bezorgd bij de ontvanger
 }
 
