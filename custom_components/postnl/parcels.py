@@ -429,28 +429,35 @@ def _convert_native_dimensions(
     }
 
 
-def _delivery_window_start(parcel: dict) -> str | None:
-    """Return the window start, sharpened to PostNL's own ETA when it has one.
+def _delivery_window(parcel: dict) -> tuple[str | None, str | None]:
+    """Return the window, sharpened to PostNL's own ETA when it has one.
 
     PostNL publishes a two-hour window *and*, once the parcel is on a route, a
-    much narrower ``expectedDeliveryTime`` inside it (#28). The window start is
-    what everything downstream reads — the calendar, the sort order, both
+    much narrower ``expectedDeliveryTime`` (#28). The window start is what
+    everything downstream reads — the calendar, the sort order, both
     next-delivery sensors — so the ETA replaces it rather than living in a
-    field nobody consumes. The untouched window start stays on ``raw``.
+    field nobody consumes. The untouched window stays on ``raw``.
 
-    The ETA is only trusted inside the window it belongs to: a value outside
-    it (or an unparseable one) is a payload we have not seen and keeps the
-    window start as PostNL sent it.
+    The ETA follows the courier and leaves the fixed window when the route runs
+    ahead or late (#54): an early ETA keeps the window end, a late one replaces
+    it. Only an ETA on another day than the window (or an unparseable one) is
+    ignored.
     """
     planned_from = parcel.get("planned_from")
+    planned_to = parcel.get("planned_to")
     expected = _parse_iso(parcel.get("expected_datetime"))
-    if expected is None:
-        return planned_from
     start = _parse_iso(planned_from)
-    end = _parse_iso(parcel.get("planned_to"))
-    if start is None or end is None or not start <= expected <= end:
-        return planned_from
-    return parcel["expected_datetime"]
+    end = _parse_iso(planned_to)
+    if (
+        expected is None
+        or start is None
+        or end is None
+        or expected.astimezone(_ZONE).date() != start.astimezone(_ZONE).date()
+    ):
+        return planned_from, planned_to
+    if expected > end:
+        return parcel["expected_datetime"], None
+    return parcel["expected_datetime"], planned_to
 
 
 def _moment(value: Any, zone: tzinfo) -> tuple[datetime, bool, str] | None:
@@ -565,7 +572,7 @@ def normalize_parcel(parcel: dict, *, history: list[dict] | None = None) -> dict
     is preserved under ``raw`` for power users.
 
     ``planned_from`` carries PostNL's narrow ``expectedDeliveryTime`` when
-    there is one — see :func:`_delivery_window_start`.
+    there is one — see :func:`_delivery_window`.
 
     ``history`` is the optional per-parcel status timeline (opt-in option,
     default off → ``None``). It stays top-level so it survives the
@@ -582,9 +589,7 @@ def normalize_parcel(parcel: dict, *, history: list[dict] | None = None) -> dict
         )
     planned_from, planned_to = planned_for_status(
         status,
-        *planned_window(
-            _delivery_window_start(parcel), parcel.get("planned_to"), zone=_ZONE
-        ),
+        *planned_window(*_delivery_window(parcel), zone=_ZONE),
     )
     pickup = is_pickup(
         parcel.get("delivery_address_type") == "ServicePoint",

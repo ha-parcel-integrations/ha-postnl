@@ -260,10 +260,10 @@ wrong by construction.
 Track & Trace gives up to three timestamps for the same delivery:
 `plannedDeliveryTimeWindow.startDateTime`/`.endDateTime` (the two-hour window
 PostNL communicates) and, once the parcel is on a route,
-`routeInformation.expectedDeliveryTime` — a far narrower estimate *inside* that
-window.
+`routeInformation.expectedDeliveryTime` — a far narrower estimate that follows the
+courier and can leave that window when the route runs ahead or late.
 
-`_delivery_window_start` (`parcels.py`) puts that estimate on **`planned_from`**
+`_delivery_window` (`parcels.py`) puts that estimate on **`planned_from`**
 rather than in a field of its own. Deliberately: `planned_from` is what every
 consumer already reads — the calendar event start, the sort order, the
 **Next delivery** sensor here and in the aggregator, Assist, and the hot-tier
@@ -273,11 +273,12 @@ every existing surface kept showing the vaguer number.
 
 Two constraints keep it honest:
 
-- `planned_to` is **never** touched, so the window keeps a real span and the
-  calendar never degenerates into a zero-length event.
-- The estimate is only adopted when it parses **and** falls within
-  `[planned_from, planned_to]`. Anything outside that is a payload shape we
-  have not seen, and PostNL's own window start is kept.
+- An early estimate keeps `planned_to`, so the window keeps a real span; a late
+  one (past `planned_to`) drops it, and the window runs to the end of that day
+  rather than ending before it starts (#54).
+- The estimate is only adopted when it parses **and** falls on the window's
+  own day. Anything else is a payload shape we have not seen, and PostNL's own
+  window is kept.
 
 Nothing is lost: `raw` is the untransformed intermediate dict, so the original
 window start remains as `raw.planned_from` alongside `raw.expected_datetime`.

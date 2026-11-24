@@ -378,12 +378,11 @@ def test_normalize_parcel_window_start_sharpened_to_expected_eta():
         None,
         "",
         "not-a-timestamp",
-        "2026-09-29T19:30:00+02:00",  # before the window
-        "2026-09-29T22:00:00+02:00",  # after the window
+        "2026-09-30T20:20:00+02:00",  # another day
     ],
 )
 def test_normalize_parcel_window_start_keeps_postnl_value_for_unusable_eta(expected):
-    """An ETA we cannot place inside the window leaves the window start alone."""
+    """An ETA we cannot place on the window's day leaves the window alone."""
     parcel = normalize_parcel(
         {
             "barcode": "X",
@@ -394,6 +393,36 @@ def test_normalize_parcel_window_start_keeps_postnl_value_for_unusable_eta(expec
         }
     )
     assert parcel["planned_from"] == "2026-09-29T19:45:00+02:00"
+
+
+def test_normalize_parcel_window_start_follows_an_early_eta():
+    """A courier ahead of schedule moves the start before the window (#54)."""
+    parcel = normalize_parcel(
+        {
+            "barcode": "X",
+            "status_message": "Bezorger is onderweg",
+            "planned_from": "2026-11-24T18:25:00+01:00",
+            "planned_to": "2026-11-24T20:25:00+01:00",
+            "expected_datetime": "2026-11-24T18:08:00+01:00",
+        }
+    )
+    assert parcel["planned_from"] == "2026-11-24T18:08:00+01:00"
+    assert parcel["planned_to"] == "2026-11-24T20:25:00+01:00"
+
+
+def test_normalize_parcel_window_start_follows_a_late_eta():
+    """A late ETA starts the window and leaves it open to the end of the day."""
+    parcel = normalize_parcel(
+        {
+            "barcode": "X",
+            "status_message": "Bezorger is onderweg",
+            "planned_from": "2026-11-24T18:25:00+01:00",
+            "planned_to": "2026-11-24T20:25:00+01:00",
+            "expected_datetime": "2026-11-24T20:40:00+01:00",
+        }
+    )
+    assert parcel["planned_from"] == "2026-11-24T20:40:00+01:00"
+    assert parcel["planned_to"] == "2026-11-24T23:59:59+01:00"
 
 
 def test_normalize_parcel_window_start_needs_both_window_bounds():
