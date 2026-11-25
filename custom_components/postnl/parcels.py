@@ -170,6 +170,7 @@ _OBSERVATION_META_CODES: frozenset[str] = frozenset(
         "K50",  # RCS melding (notification)
         "P20",  # afgesproken plek is niet veilig (delivery method changes, parcel does not move)
         "P21",  # zending kan niet in brievenbus (delivery method changes, parcel does not move)
+        "R31",  # brievenbuspakje afgekeurd op afmetingen (no longer a letterbox parcel, parcel does not move)
         "P02",  # "leeg" placeholder (variant of K33)
         "P06",  # "leeg" placeholder (variant of K33)
     }

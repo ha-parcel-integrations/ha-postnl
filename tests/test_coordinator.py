@@ -1712,6 +1712,12 @@ def test_map_observation_status_agreed_spot_not_safe_2026_11_14():
     assert "P20" in _OBSERVATION_META_CODES
 
 
+def test_map_observation_status_letterbox_parcel_rejected_on_size_2026_11_25():
+    """R31: a letterbox parcel rejected on size is a known event, not a milestone."""
+    assert map_observation_status("R31") is None
+    assert "R31" in _OBSERVATION_META_CODES
+
+
 def test_map_observation_status_received_by_postnl_variant_2026_09_18():
     """C02 reported as unknown (issue #23): variant of B01."""
     assert map_observation_status("C02") == ParcelStatus.IN_TRANSIT
