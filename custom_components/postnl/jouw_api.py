@@ -26,11 +26,13 @@ class PostNLJouwAPI:
 
     # The MyMail endpoints reject requests that only carry the bearer token; the
     # app-identification headers must be present on letter and image calls alike.
+    # Without accept-language the letter endpoint answers 500.
     mymail_headers: dict[str, str] = {
+        "accept-language": "nl-NL",
         "api-version": "1.37.0",
         "os-version": "35",
         "app-platform": "Android",
-        "app-version": "11.0.1",
+        "app-version": "11.1.4",
         "content-type": "application/json",
         "device-token": "00000000-0000-0000-0000-000000000000",
     }

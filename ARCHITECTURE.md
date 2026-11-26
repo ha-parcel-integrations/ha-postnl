@@ -202,7 +202,8 @@ recomputes it every refresh via `_next_update_interval`:
 **Letter image URLs require auth**, so `PostNLLetterImage` fetches the bytes
 server-side and serves them through HA's authenticated image proxy. **Do not
 switch to a redirect scheme.** MyMail also needs app-identification headers that
-occasionally need bumping when PostNL ships a new app version.
+occasionally need bumping when PostNL ships a new app version, plus an
+`accept-language` header: without it the letter endpoint answers 500.
 
 `postnl_letter_announced` fires per new letter. `_known_letter_ids` mirrors
 `_known_state` and is reset only after a *successful* letters fetch.

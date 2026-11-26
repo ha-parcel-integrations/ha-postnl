@@ -34,6 +34,7 @@ def test_letters_sends_mymail_headers():
     headers = client.client.get.call_args.kwargs["headers"]
     for key in ("api-version", "app-platform", "device-token"):
         assert key in headers
+    assert headers["accept-language"] == "nl-NL"
 
 
 def test_image_returns_bytes_and_content_type():
