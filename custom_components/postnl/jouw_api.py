@@ -33,8 +33,10 @@ class PostNLJouwAPI:
         "os-version": "35",
         "app-platform": "Android",
         "app-version": "11.1.4",
+        "app-country": "NL",
         "content-type": "application/json",
         "device-token": "00000000-0000-0000-0000-000000000000",
+        "user-agent": "Dalvik/2.1.0 (Linux; U; Android 15)",
     }
 
     def __init__(self, access_token: str):
