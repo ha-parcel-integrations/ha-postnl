@@ -10,5 +10,5 @@
   "issue_tracker": "https://github.com/ha-parcel-integrations/ha-postnl/issues",
   "quality_scale": "silver",
   "requirements": ["gql>=3.5,<5"],
-  "version": "5.0.0"
+  "version": "5.0.1"
 }
